@@ -1,0 +1,27 @@
+name: niobiumc
+version: 0.0.0
+
+ghc-options: >-
+  -Wall
+  -Wincomplete-record-updates
+  -Wincomplete-uni-patterns
+
+default-extensions:
+  - FlexibleContexts
+  - TypeFamilies
+
+dependencies:
+  - base >= 4.9.1.0 && < 4.10
+  - text >= 1.2.2.2 && < 1.3
+
+library:
+  source-dirs:
+    - src
+
+executables:
+  niobiumc:
+    source-dirs:
+      - app
+    main: Niobiumc.hs
+    dependencies:
+      - niobiumc
