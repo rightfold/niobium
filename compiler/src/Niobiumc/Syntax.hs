@@ -1,12 +1,13 @@
 module Niobiumc.Syntax where
 
+import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
 import Niobiumc.Annotation (DeclarationAnnotation, ExpressionAnnotation, StatementAnnotation, TypeAnnotation)
 
 
 
-newtype NamespaceName = NamespaceName [Text] deriving (Eq, Ord, Show)
-newtype VariableName = VariableName [Text] deriving (Eq, Ord, Show)
+newtype NamespaceName = NamespaceName (NonEmpty Text) deriving (Eq, Ord, Show)
+newtype VariableName = VariableName Text deriving (Eq, Ord, Show)
 
 
 
