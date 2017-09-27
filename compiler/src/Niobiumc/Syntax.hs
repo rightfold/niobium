@@ -1,8 +1,10 @@
+{-# LANGUAGE CPP #-}
+
 module Niobiumc.Syntax where
 
 import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
-import Niobiumc.Annotation (DeclarationAnnotation, ExpressionAnnotation, StatementAnnotation, TypeAnnotation)
+import Niobiumc.Annotation (DeclarationAnnotation, ExpressionAnnotation, PostParse, StatementAnnotation, TypeAnnotation)
 
 
 
@@ -36,7 +38,9 @@ statementAnnotation (ExecuteQueryStatement a _ _ _ _) = a
 statementAnnotation (ForEachStatement a _ _ _) = a
 
 data ExecuteQueryResultAction
-  = SingleRowExecuteQueryResultAction
+  = IgnoreRowsExecuteQueryResultAction
+  | SingleRowExecuteQueryResultAction
+  deriving (Eq, Show)
 
 
 
@@ -59,3 +63,14 @@ typeAnnotation :: Type s -> TypeAnnotation s
 typeAnnotation (SetType a _) = a
 typeAnnotation (TextType a) = a
 typeAnnotation (UUIDType a) = a
+
+
+
+#define NB_SYNTAX_INSTANCES(t)                                                \
+  deriving instance Eq (t PostParse)                                         ;\
+  deriving instance Show (t PostParse)
+NB_SYNTAX_INSTANCES(Declaration)
+NB_SYNTAX_INSTANCES(Statement)
+NB_SYNTAX_INSTANCES(Expression)
+NB_SYNTAX_INSTANCES(Type)
+#undef NB_SYNTAX_INSTANCES

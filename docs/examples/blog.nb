@@ -1,0 +1,47 @@
+NAMESPACE blog
+
+USING std.text
+USING std.locale
+
+FUNCTION normalize_tag(name text) text =
+  name
+  NB |> text.lower(locale.en_gb)
+  NB |> text.trim()
+  NB |> text.gsub(/[^a-z0-9]+/, "-")
+
+PROCEDURE ensure_tag
+USING
+  name text
+BEGIN
+  EXECUTE-QUERY
+    " INSERT INTO tags (name)
+      VALUES ($1)
+      ON CONFLICT (name) DO NOTHING "
+    USING normalize_tag(name)
+    IGNORE-ROWS
+END
+
+PROCEDURE create_post
+USING
+  title text,
+  body text,
+  tags set(text)
+GIVING
+  id uuid
+BEGIN
+  EXECUTE-QUERY
+    " INSERT INTO posts (title, body)
+      VALUES ($1, $2)
+      RETURNING id "
+    USING title, body
+    GIVING id
+    SINGLE-ROW
+  FOR-EACH tag IN tags DO
+    CALL ensure_tag USING tag
+    EXECUTE-QUERY
+      " INSERT INTO post_tags (post_id, tag)
+        VALUES ($1, $2) "
+      USING id, normalize_tag(tag)
+      IGNORE-ROWS
+  END
+END

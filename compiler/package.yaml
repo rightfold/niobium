@@ -8,8 +8,9 @@ ghc-options: >-
 
 default-extensions:
   - ApplicativeDo
-  - FlexibleContexts
+  - FlexibleInstances
   - OverloadedStrings
+  - StandaloneDeriving
   - TypeFamilies
 
 dependencies:

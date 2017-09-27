@@ -2,5 +2,21 @@ module Main
   ( main
   ) where
 
+import Niobiumc.Lex (lexeme, whitespace)
+import Niobiumc.Parse (declaration)
+import System.Environment (getArgs)
+
+import qualified Data.Text.IO as Text.IO
+import qualified Text.Parsec as P
+
 main :: IO ()
-main = pure ()
+main = do
+  [filename] <- getArgs
+  text <- Text.IO.readFile filename
+  lexemes <- case P.parse (whitespace *> P.many lexeme <* P.eof) "" text of
+    Left err -> fail (show err)
+    Right ok -> pure ok
+  declarations <- case P.parse (P.many declaration <* P.eof) "" lexemes of
+    Left err -> fail (show err)
+    Right ok -> pure ok
+  print declarations

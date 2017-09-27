@@ -8,6 +8,7 @@ module Niobiumc.Lex
 
 import Prelude hiding (head, tail)
 
+import Control.Monad (when)
 import Data.Functor (void)
 import Data.Text (Text)
 import Niobiumc.Annotation (Position)
@@ -30,6 +31,7 @@ data Token
   | ForEachKeyword
   | FunctionKeyword
   | GivingKeyword
+  | IgnoreRowsKeyword
   | InKeyword
   | NamespaceKeyword
   | ProcedureKeyword
@@ -67,7 +69,7 @@ token = P.choice [ identifierOrKeyword
 identifierOrKeyword :: P.Parser Token
 identifierOrKeyword = do
   let head = P.oneOf $ ['A'..'Z'] ++ ['a'..'z']
-  let tail = P.oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9']
+  let tail = P.oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['_', '-']
   name <- fmap Text.pack $ (:) <$> head <*> P.many tail
   pure $ case Text.toUpper name of
     "BEGIN" -> BeginKeyword
@@ -78,6 +80,7 @@ identifierOrKeyword = do
     "FOR-EACH" -> ForEachKeyword
     "FUNCTION" -> FunctionKeyword
     "GIVING" -> GivingKeyword
+    "IGNORE-ROWS" -> IgnoreRowsKeyword
     "IN" -> InKeyword
     "NAMESPACE" -> NamespaceKeyword
     "PROCEDURE" -> ProcedureKeyword
@@ -108,4 +111,11 @@ stringLiteral = do
   pure $ StringLiteral text
 
 whitespace :: P.Parser ()
-whitespace = void $ P.many P.space
+whitespace = void $ P.many (void space P.<|> P.try comment)
+  where space = P.space
+        comment = do
+          _ <- P.oneOf ['N', 'n']
+          _ <- P.oneOf ['B', 'b']
+          s <- space
+          _ <- when (s /= '\n') (void $ P.many (P.noneOf ['\n']))
+          pure ()

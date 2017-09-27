@@ -129,8 +129,10 @@ executeQueryStatement = do
   pure $ ExecuteQueryStatement position query using giving resultAction
   where
     executeQueryResultAction :: Parser ExecuteQueryResultAction
-    executeQueryResultAction =
-      SingleRowExecuteQueryResultAction <$ token SingleRowKeyword
+    executeQueryResultAction = P.choice
+      [ IgnoreRowsExecuteQueryResultAction <$ token IgnoreRowsKeyword
+      , SingleRowExecuteQueryResultAction <$ token SingleRowKeyword
+      ]
 
 forEachStatement :: Parser (Statement PostParse)
 forEachStatement = do
@@ -202,16 +204,22 @@ uuidType = do
 
 
 
+anyToken :: Parser Lexeme
+anyToken = do
+  lexeme@(Lexeme position _) <- P.anyToken
+  _ <- P.setPosition position
+  pure lexeme
+
 token :: Token -> Parser Lexeme
-token expected = P.try . (P.<?> show expected) $ do
-  lexeme@(Lexeme _ actual) <- P.anyToken
+token expected = (P.<?> show expected) . P.try $ do
+  lexeme@(Lexeme _ actual) <- anyToken
   when (actual /= expected) $
     P.unexpected $ show actual
   pure lexeme
 
 identifier :: Parser (Position, Text)
-identifier = P.try . (P.<?> "Identifier") $ do
-  Lexeme position actual <- P.anyToken
+identifier = (P.<?> "Identifier") . P.try $ do
+  Lexeme position actual <- anyToken
   case actual of
     Identifier name -> pure (position, name)
     _ -> P.unexpected $ show actual
@@ -220,8 +228,8 @@ identifier' :: Parser Text
 identifier' = snd <$> identifier
 
 stringLiteral :: Parser (Position, Text)
-stringLiteral = P.try . (P.<?> "StringLiteral") $ do
-  Lexeme position actual <- P.anyToken
+stringLiteral = (P.<?> "StringLiteral") . P.try $ do
+  Lexeme position actual <- anyToken
   case actual of
     StringLiteral text -> pure (position, text)
     _ -> P.unexpected $ show actual
