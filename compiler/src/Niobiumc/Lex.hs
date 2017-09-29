@@ -34,6 +34,7 @@ data Token
   | IgnoreRowsKeyword
   | InKeyword
   | NamespaceKeyword
+  | NullNamespaceKeyword
   | ProcedureKeyword
   | SingleRowKeyword
   | UsingKeyword
@@ -83,6 +84,7 @@ identifierOrKeyword = do
     "IGNORE-ROWS" -> IgnoreRowsKeyword
     "IN" -> InKeyword
     "NAMESPACE" -> NamespaceKeyword
+    "NULL-NAMESPACE" -> NullNamespaceKeyword
     "PROCEDURE" -> ProcedureKeyword
     "SINGLE-ROW" -> SingleRowKeyword
     "USING" -> UsingKeyword

@@ -1,7 +1,9 @@
-NAMESPACE blog
+NAMESPACE example.blog
 
-USING std.text
 USING std.locale
+USING std.set
+USING std.text
+USING std.uuid
 
 FUNCTION normalize_tag(name text) text =
   name

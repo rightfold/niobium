@@ -12,8 +12,8 @@ import Data.List (foldl')
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text)
 import Niobiumc.Annotation (Position, PostParse)
-import Niobiumc.Syntax (Declaration (..), ExecuteQueryResultAction (..), Expression (..), NamespaceName (..), Statement (..), Type (..), VariableName (..), expressionAnnotation)
 import Niobiumc.Lex (Lexeme (..), Token (..))
+import Niobiumc.Syntax (Declaration (..), ExecuteQueryResultAction (..), Expression (..), NamespaceName (..), Statement (..), Type (..), VariableName (..), expressionAnnotation)
 
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Text.Parsec as P
@@ -25,10 +25,18 @@ type Parser = P.Parsec [Lexeme] ()
 
 
 namespaceName :: Parser (Position, NamespaceName)
-namespaceName = do
-  name@((position, _) :| _) <- identifier `sepBy1'` token Period
-  pure (position, NamespaceName (snd <$> name))
-  where p `sepBy1'` s = NonEmpty.fromList <$> p `P.sepBy1` s
+namespaceName = nullNamespaceName P.<|> nonNullNamespaceName
+  where
+    nullNamespaceName :: Parser (Position, NamespaceName)
+    nullNamespaceName = do
+      Lexeme position _ <- token NullNamespaceKeyword
+      pure (position, NamespaceName [])
+
+    nonNullNamespaceName :: Parser (Position, NamespaceName)
+    nonNullNamespaceName = do
+      name@((position, _) :| _) <- identifier `sepBy1'` token Period
+      pure (position, NamespaceName (snd <$> NonEmpty.toList name))
+      where p `sepBy1'` s = NonEmpty.fromList <$> p `P.sepBy1` s
 
 namespaceName' :: Parser NamespaceName
 namespaceName' = snd <$> namespaceName
