@@ -11,9 +11,8 @@ import Data.Foldable (fold)
 import Data.List (foldl')
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text)
-import Niobiumc.Annotation (Position, PostParse)
 import Niobiumc.Lex (Lexeme (..), Token (..))
-import Niobiumc.Syntax (Declaration (..), ExecuteQueryResultAction (..), Expression (..), NamespaceName (..), Statement (..), Type (..), VariableName (..), expressionAnnotation)
+import Niobiumc.Syntax (Declaration (..), ExecuteQueryResultAction (..), Expression (..), NamespaceName (..), Position, PostParse, Statement (..), Type (..), VariableName (..), expressionAnnotation)
 
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Text.Parsec as P

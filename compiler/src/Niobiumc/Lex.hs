@@ -11,7 +11,7 @@ import Prelude hiding (head, tail)
 import Control.Monad (when)
 import Data.Functor (void)
 import Data.Text (Text)
-import Niobiumc.Annotation (Position)
+import Niobiumc.Syntax (Position)
 
 import qualified Data.Text as Text
 import qualified Text.Parsec as P

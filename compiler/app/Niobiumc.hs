@@ -2,6 +2,7 @@ module Main
   ( main
   ) where
 
+import Niobiumc.Check (checkDeclaration, runCheck)
 import Niobiumc.Lex (lexeme, whitespace)
 import Niobiumc.Parse (declaration)
 import System.Environment (getArgs)
@@ -13,10 +14,16 @@ main :: IO ()
 main = do
   [filename] <- getArgs
   text <- Text.IO.readFile filename
+
   lexemes <- case P.parse (whitespace *> P.many lexeme <* P.eof) "" text of
     Left err -> fail (show err)
     Right ok -> pure ok
-  declarations <- case P.parse (P.many declaration <* P.eof) "" lexemes of
+  declarationsPostParse <- case P.parse (P.many declaration <* P.eof) "" lexemes of
     Left err -> fail (show err)
     Right ok -> pure ok
-  print declarations
+  print declarationsPostParse
+
+  declarationsPostCheck <- case runCheck (traverse checkDeclaration declarationsPostParse) of
+    Left err -> fail (show err)
+    Right ok -> pure ok
+  print declarationsPostCheck

@@ -3,7 +3,7 @@
 module Niobiumc.Syntax where
 
 import Data.Text (Text)
-import Niobiumc.Annotation (DeclarationAnnotation, ExpressionAnnotation, PostParse, StatementAnnotation, TypeAnnotation)
+import Text.Parsec (SourcePos)
 
 
 
@@ -54,20 +54,47 @@ expressionAnnotation (ApplyExpression a _ _) = a
 
 
 data Type s
-  = SetType (TypeAnnotation s) (Type s)
+  = FunctionType (TypeAnnotation s) [Type s] (Type s)
+  | ProcedureType (TypeAnnotation s) [Type s] [Type s]
+  | SetType (TypeAnnotation s) (Type s)
   | TextType (TypeAnnotation s)
   | UUIDType (TypeAnnotation s)
 
 typeAnnotation :: Type s -> TypeAnnotation s
+typeAnnotation (FunctionType a _ _) = a
+typeAnnotation (ProcedureType a _ _) = a
 typeAnnotation (SetType a _) = a
 typeAnnotation (TextType a) = a
 typeAnnotation (UUIDType a) = a
 
 
 
+type Position = SourcePos
+
+type family DeclarationAnnotation s :: *
+type family StatementAnnotation s :: *
+type family ExpressionAnnotation s :: *
+type family TypeAnnotation s :: *
+
+data PostParse
+type instance DeclarationAnnotation PostParse = Position
+type instance StatementAnnotation PostParse = Position
+type instance ExpressionAnnotation PostParse = Position
+type instance TypeAnnotation PostParse = Position
+
+data PostCheck
+type instance DeclarationAnnotation PostCheck = (Position, NamespaceName)
+type instance StatementAnnotation PostCheck = Position
+type instance ExpressionAnnotation PostCheck = (Position, Type PostCheck)
+type instance TypeAnnotation PostCheck = Position
+
+
+
 #define NB_SYNTAX_INSTANCES(t)                                                \
   deriving instance Eq (t PostParse)                                         ;\
-  deriving instance Show (t PostParse)
+  deriving instance Eq (t PostCheck)                                         ;\
+  deriving instance Show (t PostParse)                                       ;\
+  deriving instance Show (t PostCheck)
 NB_SYNTAX_INSTANCES(Declaration)
 NB_SYNTAX_INSTANCES(Statement)
 NB_SYNTAX_INSTANCES(Expression)

@@ -9,12 +9,17 @@ ghc-options: >-
 default-extensions:
   - ApplicativeDo
   - FlexibleInstances
+  - LambdaCase
   - OverloadedStrings
+  - ParallelListComp
   - StandaloneDeriving
   - TypeFamilies
 
 dependencies:
   - base >= 4.9.1.0 && < 4.10
+  - containers >= 0.5.7.1 && < 0.6
+  - lens >= 4.15.4 && < 4.16
+  - mtl >= 2.2.1 && < 2.3
   - parsec >= 3.1.11 && < 3.2
   - text >= 1.2.2.2 && < 1.3
 
