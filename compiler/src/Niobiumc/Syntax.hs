@@ -15,8 +15,8 @@ newtype VariableName = VariableName Text deriving (Eq, Ord, Show)
 data Declaration s
   = NamespaceDeclaration (DeclarationAnnotation s) NamespaceName
   | UsingDeclaration (DeclarationAnnotation s) NamespaceName
-  | FunctionDeclaration (DeclarationAnnotation s) Text [(Text, Type s)] (Type s) (Expression s)
-  | ProcedureDeclaration (DeclarationAnnotation s) Text [(Text, Type s)] [(Text, Type s)] [Statement s]
+  | FunctionDeclaration (DeclarationAnnotation s) VariableName [(VariableName, Type s)] (Type s) (Expression s)
+  | ProcedureDeclaration (DeclarationAnnotation s) VariableName [(VariableName, Type s)] [(VariableName, Type s)] [Statement s]
 
 declarationAnnotation :: Declaration s -> DeclarationAnnotation s
 declarationAnnotation (NamespaceDeclaration a _) = a

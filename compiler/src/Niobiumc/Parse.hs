@@ -71,9 +71,9 @@ usingDeclaration = do
 functionDeclaration :: Parser (Declaration PostParse)
 functionDeclaration = do
   Lexeme position _ <- token FunctionKeyword
-  name <- identifier'
+  name <- variableName'
   _ <- token LeftParenthesis
-  parameters <- ((,) <$> identifier' <*> type_) `P.sepBy` token Comma
+  parameters <- ((,) <$> variableName' <*> type_) `P.sepBy` token Comma
   _ <- token RightParenthesis
   returnType <- type_
   _ <- token EqualsSign
@@ -83,14 +83,14 @@ functionDeclaration = do
 procedureDeclaration :: Parser (Declaration PostParse)
 procedureDeclaration = do
   Lexeme position _ <- token ProcedureKeyword
-  name <- identifier'
+  name <- variableName'
   using <- fmap fold . P.optionMaybe $ do
     _ <- token UsingKeyword
-    parameters <- ((,) <$> identifier' <*> type_) `P.sepBy` token Comma
+    parameters <- ((,) <$> variableName' <*> type_) `P.sepBy` token Comma
     pure parameters
   giving <- fmap fold . P.optionMaybe $ do
     _ <- token GivingKeyword
-    parameters <- ((,) <$> identifier' <*> type_) `P.sepBy` token Comma
+    parameters <- ((,) <$> variableName' <*> type_) `P.sepBy` token Comma
     pure parameters
   _ <- token BeginKeyword
   body <- P.many statement
@@ -230,9 +230,6 @@ identifier = (P.<?> "Identifier") . P.try $ do
   case actual of
     Identifier name -> pure (position, name)
     _ -> P.unexpected $ show actual
-
-identifier' :: Parser Text
-identifier' = snd <$> identifier
 
 stringLiteral :: Parser (Position, Text)
 stringLiteral = (P.<?> "StringLiteral") . P.try $ do

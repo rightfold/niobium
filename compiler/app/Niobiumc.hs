@@ -2,11 +2,15 @@ module Main
   ( main
   ) where
 
+import Data.Foldable (traverse_)
 import Niobiumc.Check (checkDeclaration, runCheck)
+import Niobiumc.Codegen.C (codegenDeclaration, codegenFooter, codegenHeader, runCodegen)
 import Niobiumc.Lex (lexeme, whitespace)
 import Niobiumc.Parse (declaration)
 import System.Environment (getArgs)
+import System.IO (stdout)
 
+import qualified Data.ByteString.Builder as Builder
 import qualified Data.Text.IO as Text.IO
 import qualified Text.Parsec as P
 
@@ -27,3 +31,8 @@ main = do
     Left err -> fail (show err)
     Right ok -> pure ok
   print declarationsPostCheck
+
+  Builder.hPutBuilder stdout . snd . runCodegen $ do
+    codegenHeader
+    traverse_ codegenDeclaration declarationsPostCheck
+    codegenFooter

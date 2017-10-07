@@ -77,10 +77,10 @@ checkDeclaration (FunctionDeclaration a name parameters returnType body) = do
   parameters' <- traverse (traverse checkType) parameters
   returnType' <- checkType returnType
 
-  csGlobalVariables . at (currentNS, VariableName name) ?=
+  csGlobalVariables . at (currentNS, name) ?=
     FunctionType a (snd <$> parameters') returnType'
 
-  let parameterVariables = Map.fromList [(VariableName v, t) | (v, t) <- parameters']
+  let parameterVariables = Map.fromList parameters'
       bodyEnvironment = ceVariables %~ (parameterVariables <>)
   body' <- Reader.local bodyEnvironment $ checkExpression body
 
@@ -91,11 +91,11 @@ checkDeclaration (ProcedureDeclaration a name using giving body) = do
   using' <- traverse (traverse checkType) using
   giving' <- traverse (traverse checkType) giving
 
-  csGlobalVariables . at (currentNS, VariableName name) ?=
+  csGlobalVariables . at (currentNS, name) ?=
     ProcedureType a (snd <$> using') (snd <$> giving')
 
-  let usingVariables = Map.fromList [(VariableName v, t) | (v, t) <- using']
-  let givingVariables = Map.fromList [(VariableName v, t) | (v, t) <- giving']
+  let usingVariables = Map.fromList using'
+  let givingVariables = Map.fromList giving'
   let bodyEnvironment = ceVariables %~ ((usingVariables <> givingVariables) <>)
   body' <- Reader.local bodyEnvironment $ traverse checkStatement body
 
