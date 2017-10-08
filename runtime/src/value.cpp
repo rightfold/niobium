@@ -1,3 +1,4 @@
+#include <niobium/detail/utility.hpp>
 #include <niobium/value.hpp>
 
 #include <boost/variant.hpp>
@@ -50,6 +51,24 @@ nb::value nb::value::array_element(std::size_t index) const {
 void nb::value::set_array_element(std::size_t index, value element) {
   auto& pointer = boost::get<array_type>(variant);
   pointer->at(index) = std::move(element);
+}
+
+
+
+nb::value nb::operator+(value const& x, value const& y) {
+  auto xu = nb::detail::memcpy_cast<std::uint64_t>(x.integer_value());
+  auto yu = nb::detail::memcpy_cast<std::uint64_t>(y.integer_value());
+  auto zu = xu + yu;
+  auto z = value::new_integer(nb::detail::memcpy_cast<std::int64_t>(zu));
+  return z;
+}
+
+nb::value nb::operator*(value const& x, value const& y) {
+  auto xu = nb::detail::memcpy_cast<std::uint64_t>(x.integer_value());
+  auto yu = nb::detail::memcpy_cast<std::uint64_t>(y.integer_value());
+  auto zu = xu * yu;
+  auto z = value::new_integer(nb::detail::memcpy_cast<std::int64_t>(zu));
+  return z;
 }
 
 

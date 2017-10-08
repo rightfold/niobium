@@ -5,6 +5,12 @@
 
 
 
+#define NB_ADD(result, x, y)                    \
+  result = (x) + (y)
+
+#define NB_APPLY(result, applyee, ...)          \
+  result = (applyee)(__VA_ARGS__)
+
 #define NB_CALL(callee, ...)                    \
   (callee)(context, ##__VA_ARGS__)
 
@@ -37,7 +43,5 @@
     }                                                           \
   } while (0)
 
-
-
-#define NB_APPLY(result, applyee, ...)          \
-  result = (applyee)(__VA_ARGS__);
+#define NB_MULTIPLY(result, x, y)                    \
+  result = (x) * (y)

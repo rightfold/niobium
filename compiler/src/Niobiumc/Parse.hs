@@ -101,10 +101,22 @@ procedureDeclaration = do
 
 statement :: Parser (Statement PostParse)
 statement = P.choice
-  [ callStatement
+  [ addStatement
+  , callStatement
   , executeQueryStatement
   , forEachStatement
+  , multiplyStatement
   ]
+
+addStatement :: Parser (Statement PostParse)
+addStatement = do
+  Lexeme position _ <- token AddKeyword
+  x <- expression
+  _ <- token ToKeyword
+  y <- expression
+  _ <- token GivingKeyword
+  z <- variableName'
+  pure $ AddStatement position x y z
 
 callStatement :: Parser (Statement PostParse)
 callStatement = do
@@ -152,6 +164,16 @@ forEachStatement = do
   _ <- token EndKeyword
   pure $ ForEachStatement position name iterable body
 
+multiplyStatement :: Parser (Statement PostParse)
+multiplyStatement = do
+  Lexeme position _ <- token MultiplyKeyword
+  x <- expression
+  _ <- token ByKeyword
+  y <- expression
+  _ <- token GivingKeyword
+  z <- variableName'
+  pure $ MultiplyStatement position x y z
+
 
 
 expression :: Parser (Expression PostParse)
@@ -186,10 +208,16 @@ applyExpression next = do
 
 type_ :: Parser (Type PostParse)
 type_ = P.choice
-  [ setType
+  [ intType
+  , setType
   , textType
   , uuidType
   ]
+
+intType :: Parser (Type PostParse)
+intType = do
+  Lexeme position _ <- token $ Identifier "int"
+  pure $ IntType position
 
 setType :: Parser (Type PostParse)
 setType = do

@@ -32,6 +32,9 @@ namespace nb {
     boost::variant<integer_type, array_type, string_type> variant;
   };
 
+  value operator+(value const&, value const&);
+  value operator*(value const&, value const&);
+
   value iterator(value);
   bool iterator_next(value&, value);
 }

@@ -1,0 +1,7 @@
+PROCEDURE arithmetic
+USING a int, b int
+GIVING sum int, product int
+BEGIN
+  ADD a TO b GIVING sum
+  MULTIPLY a BY b GIVING product
+END

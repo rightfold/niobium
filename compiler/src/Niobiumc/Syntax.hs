@@ -27,14 +27,18 @@ declarationAnnotation (ProcedureDeclaration a _ _ _ _) = a
 
 
 data Statement s
-  = CallStatement (StatementAnnotation s) (Expression s) [Expression s] [VariableName]
+  = AddStatement (StatementAnnotation s) (Expression s) (Expression s) VariableName
+  | CallStatement (StatementAnnotation s) (Expression s) [Expression s] [VariableName]
   | ExecuteQueryStatement (StatementAnnotation s) Text [Expression s] [VariableName] ExecuteQueryResultAction
   | ForEachStatement (StatementAnnotation s) VariableName (Expression s) [Statement s]
+  | MultiplyStatement (StatementAnnotation s) (Expression s) (Expression s) VariableName
 
 statementAnnotation :: Statement s -> StatementAnnotation s
+statementAnnotation (AddStatement a _ _ _) = a
 statementAnnotation (CallStatement a _ _ _) = a
 statementAnnotation (ExecuteQueryStatement a _ _ _ _) = a
 statementAnnotation (ForEachStatement a _ _ _) = a
+statementAnnotation (MultiplyStatement a _ _ _) = a
 
 data ExecuteQueryResultAction
   = IgnoreRowsExecuteQueryResultAction
@@ -55,6 +59,7 @@ expressionAnnotation (ApplyExpression a _ _) = a
 
 data Type s
   = FunctionType (TypeAnnotation s) [Type s] (Type s)
+  | IntType (TypeAnnotation s)
   | ProcedureType (TypeAnnotation s) [Type s] [Type s]
   | SetType (TypeAnnotation s) (Type s)
   | TextType (TypeAnnotation s)
@@ -62,6 +67,7 @@ data Type s
 
 typeAnnotation :: Type s -> TypeAnnotation s
 typeAnnotation (FunctionType a _ _) = a
+typeAnnotation (IntType a) = a
 typeAnnotation (ProcedureType a _ _) = a
 typeAnnotation (SetType a _) = a
 typeAnnotation (TextType a) = a

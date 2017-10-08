@@ -31,6 +31,7 @@ type Check = RWST CheckEnvironment () CheckState (Either CheckError)
 
 data CheckError
   = ApplyeeNotFunction Position (Type PostCheck)
+  | ArithmeticTypeMismatch Position
   | CalleeNotProcedure Position (Type PostCheck)
   | InvalidArgumentCount Position (Type PostCheck)
   | NotIterable Position
@@ -102,6 +103,13 @@ checkDeclaration (ProcedureDeclaration a name using giving body) = do
   pure $ ProcedureDeclaration (a, currentNS) name using' giving' body'
 
 checkStatement :: Statement PostParse -> Check (Statement PostCheck)
+checkStatement (AddStatement a x y z) = do
+  x' <- checkExpression x
+  y' <- checkExpression y
+  z' <- checkExpression (VariableExpression a Nothing z)
+  case (typeOf x', typeOf y', typeOf z') of
+    (IntType _, IntType _, IntType _) -> pure $ AddStatement a x' y' z
+    _ -> throwError $ ArithmeticTypeMismatch a
 checkStatement (CallStatement a callee using giving) = do
   callee' <- checkExpression callee
   using' <- traverse checkExpression using
@@ -129,6 +137,13 @@ checkStatement (ForEachStatement a name iterable body) = do
   body' <- Reader.local bodyEnvironment $
     traverse checkStatement body
   pure $ ForEachStatement a name iterable' body'
+checkStatement (MultiplyStatement a x y z) = do
+  x' <- checkExpression x
+  y' <- checkExpression y
+  z' <- checkExpression (VariableExpression a Nothing z)
+  case (typeOf x', typeOf y', typeOf z') of
+    (IntType _, IntType _, IntType _) -> pure $ MultiplyStatement a x' y' z
+    _ -> throwError $ ArithmeticTypeMismatch a
 
 checkExpression :: Expression PostParse -> Check (Expression PostCheck)
 checkExpression (VariableExpression _ (Just _) _) =
@@ -159,6 +174,8 @@ checkType (FunctionType a parameters returnType) = do
   parameters' <- traverse checkType parameters
   returnType' <- checkType returnType
   pure $ FunctionType a parameters' returnType'
+checkType (IntType a) =
+  pure $ IntType a
 checkType (ProcedureType a using giving) = do
   using' <- traverse checkType using
   giving' <- traverse checkType giving
@@ -186,6 +203,7 @@ checkCoerce a = \ty e -> e <$ checkAssignable ty (typeOf e)
         throwError $ TypeMismatch a
       sequence_ [checkAssignable p1 p2 | p1 <- ps1 | p2 <- ps2]
       checkAssignable r1 r2
+    checkAssignable (IntType _) (IntType _) = pure ()
     checkAssignable (ProcedureType _ us1 gs1) (ProcedureType _ us2 gs2) = do
       when (length us1 /= length us2) $
         throwError $ TypeMismatch a

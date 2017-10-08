@@ -83,6 +83,11 @@ codegenDeclaration (ProcedureDeclaration _ name using giving body) = do
   tell $ "}\n"
 
 codegenStatement :: Statement PostCheck -> Codegen ()
+codegenStatement (AddStatement _ x y z) = do
+  x' <- codegenExpression x
+  y' <- codegenExpression y
+  z' <- getLocal z
+  tell $ "NB_ADD(" <> intercalate ", " [z', x', y'] <> ");\n"
 codegenStatement (CallStatement _ callee using giving) = do
   callee' <- codegenExpression callee
   using' <- traverse codegenExpression using
@@ -105,6 +110,11 @@ codegenStatement (ForEachStatement _ name iterable body) = do
   tell $ "NB_FOR_EACH(" <> name' <> ", " <> iterable' <> ", {\n"
   traverse_ codegenStatement body
   tell $ "});\n"
+codegenStatement (MultiplyStatement _ x y z) = do
+  x' <- codegenExpression x
+  y' <- codegenExpression y
+  z' <- getLocal z
+  tell $ "NB_MULTIPLY(" <> intercalate ", " [z', x', y'] <> ");\n"
 
 codegenExpression :: Expression PostCheck -> Codegen Builder
 codegenExpression (VariableExpression _ Nothing name) = getLocal name

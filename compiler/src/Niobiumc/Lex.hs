@@ -23,7 +23,9 @@ data Lexeme = Lexeme Position Token
 data Token
   = Identifier Text
 
+  | AddKeyword
   | BeginKeyword
+  | ByKeyword
   | CallKeyword
   | DoKeyword
   | EndKeyword
@@ -33,10 +35,12 @@ data Token
   | GivingKeyword
   | IgnoreRowsKeyword
   | InKeyword
+  | MultiplyKeyword
   | NamespaceKeyword
   | NullNamespaceKeyword
   | ProcedureKeyword
   | SingleRowKeyword
+  | ToKeyword
   | UsingKeyword
 
   | Comma
@@ -73,7 +77,9 @@ identifierOrKeyword = do
   let tail = P.oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['_', '-']
   name <- fmap Text.pack $ (:) <$> head <*> P.many tail
   pure $ case Text.toUpper name of
+    "ADD" -> AddKeyword
     "BEGIN" -> BeginKeyword
+    "BY" -> ByKeyword
     "CALL" -> CallKeyword
     "DO" -> DoKeyword
     "END" -> EndKeyword
@@ -83,10 +89,12 @@ identifierOrKeyword = do
     "GIVING" -> GivingKeyword
     "IGNORE-ROWS" -> IgnoreRowsKeyword
     "IN" -> InKeyword
+    "MULTIPLY" -> MultiplyKeyword
     "NAMESPACE" -> NamespaceKeyword
     "NULL-NAMESPACE" -> NullNamespaceKeyword
     "PROCEDURE" -> ProcedureKeyword
     "SINGLE-ROW" -> SingleRowKeyword
+    "TO" -> ToKeyword
     "USING" -> UsingKeyword
     _ -> Identifier name
 
