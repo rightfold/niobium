@@ -10,6 +10,7 @@ import Prelude hiding (head, tail)
 
 import Control.Monad (when)
 import Data.Functor (void)
+import Data.Maybe (isJust)
 import Data.Text (Text)
 import Niobiumc.Syntax (Position)
 
@@ -75,31 +76,32 @@ token = P.choice [ identifierOrKeyword
 
 identifierOrKeyword :: P.Parser Token
 identifierOrKeyword = do
+  escape <- fmap isJust . P.optionMaybe . P.char $ '@'
   let head = P.oneOf $ ['A'..'Z'] ++ ['a'..'z']
   let tail = P.oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['_', '-']
   name <- fmap Text.pack $ (:) <$> head <*> P.many tail
-  pure $ case Text.toUpper name of
-    "ADD" -> AddKeyword
-    "BEGIN" -> BeginKeyword
-    "BY" -> ByKeyword
-    "CALL" -> CallKeyword
-    "DO" -> DoKeyword
-    "END" -> EndKeyword
-    "EXECUTE-QUERY" -> ExecuteQueryKeyword
-    "FOR-EACH" -> ForEachKeyword
-    "FUNCTION" -> FunctionKeyword
-    "GIVING" -> GivingKeyword
-    "IGNORE-ROWS" -> IgnoreRowsKeyword
-    "IN" -> InKeyword
-    "INT" -> IntKeyword
-    "MULTIPLY" -> MultiplyKeyword
-    "NAMESPACE" -> NamespaceKeyword
-    "NULL-NAMESPACE" -> NullNamespaceKeyword
-    "PROCEDURE" -> ProcedureKeyword
-    "REPORT" -> ReportKeyword
-    "SINGLE-ROW" -> SingleRowKeyword
-    "TO" -> ToKeyword
-    "USING" -> UsingKeyword
+  pure $ case (escape, Text.toUpper name) of
+    (False, "ADD") -> AddKeyword
+    (False, "BEGIN") -> BeginKeyword
+    (False, "BY") -> ByKeyword
+    (False, "CALL") -> CallKeyword
+    (False, "DO") -> DoKeyword
+    (False, "END") -> EndKeyword
+    (False, "EXECUTE-QUERY") -> ExecuteQueryKeyword
+    (False, "FOR-EACH") -> ForEachKeyword
+    (False, "FUNCTION") -> FunctionKeyword
+    (False, "GIVING") -> GivingKeyword
+    (False, "IGNORE-ROWS") -> IgnoreRowsKeyword
+    (False, "IN") -> InKeyword
+    (False, "INT") -> IntKeyword
+    (False, "MULTIPLY") -> MultiplyKeyword
+    (False, "NAMESPACE") -> NamespaceKeyword
+    (False, "NULL-NAMESPACE") -> NullNamespaceKeyword
+    (False, "PROCEDURE") -> ProcedureKeyword
+    (False, "REPORT") -> ReportKeyword
+    (False, "SINGLE-ROW") -> SingleRowKeyword
+    (False, "TO") -> ToKeyword
+    (False, "USING") -> UsingKeyword
     _ -> Identifier name
 
 comma :: P.Parser Token

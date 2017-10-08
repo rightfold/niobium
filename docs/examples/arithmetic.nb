@@ -1,11 +1,25 @@
 NAMESPACE example
 
+PROCEDURE @add
+USING a INT, b INT
+GIVING c INT
+BEGIN
+  ADD a TO b GIVING c
+END
+
+PROCEDURE @multiply
+USING a INT, b INT
+GIVING c INT
+BEGIN
+  MULTIPLY a BY b GIVING c
+END
+
 PROCEDURE arithmetic
 USING a INT, b INT
 GIVING sum INT, product INT
 BEGIN
-  ADD a TO b GIVING sum
-  MULTIPLY a BY b GIVING product
+  CALL @add USING a, b GIVING sum
+  CALL @multiply USING a, b GIVING product
 END
 
 FUNCTION arithmetic_report() REPORT =
