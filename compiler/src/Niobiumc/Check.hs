@@ -20,7 +20,7 @@ import Control.Monad.RWS (RWST, evalRWST)
 import Data.Foldable (traverse_)
 import Data.Map (Map)
 import Data.Semigroup ((<>))
-import Niobiumc.Syntax (Declaration (..), Expression (..), NamespaceName (..), Position, PostCheck, PostParse, Statement (..), Type (..), VariableName (..), expressionAnnotation)
+import Niobiumc.Syntax (Declaration (..), Expression (..), NamespaceName (..), Position, PostCheck, PostParse, Statement (..), Type (..), VariableName (..), expressionAnnotation, typeOf)
 
 import qualified Control.Monad.Reader as Reader
 import qualified Data.Map as Map
@@ -35,6 +35,7 @@ data CheckError
   | CalleeNotProcedure Position (Type PostCheck)
   | InvalidArgumentCount Position (Type PostCheck)
   | NotIterable Position
+  | ReportNotSubroutine Position
   | TypeMismatch Position
   | UnknownVariableError Position VariableName
   deriving (Show)
@@ -146,16 +147,6 @@ checkStatement (MultiplyStatement a x y z) = do
     _ -> throwError $ ArithmeticTypeMismatch a
 
 checkExpression :: Expression PostParse -> Check (Expression PostCheck)
-checkExpression (VariableExpression _ (Just _) _) =
-  error "Not yet implemented: checkExpression on qualified variables."
-checkExpression (VariableExpression a Nothing name) = do
-  currentNS <- use csCurrentNamespace
-  local <- Reader.asks (Map.lookup name . view ceVariables)
-  global <- use $ csGlobalVariables . at (currentNS, name)
-  case (local, global) of
-    (Nothing, Nothing) -> throwError (UnknownVariableError a name)
-    (Just ty, _)       -> pure $ VariableExpression (a, ty) Nothing name
-    (Nothing, Just ty) -> pure $ VariableExpression (a, ty) (Just currentNS) name
 checkExpression (ApplyExpression a applyee arguments) = do
   applyee' <- checkExpression applyee
   arguments' <- traverse checkExpression arguments
@@ -168,6 +159,23 @@ checkExpression (ApplyExpression a applyee arguments) = do
                                                       | e <- arguments' ]
           pure $ ApplyExpression (a, returnType) applyee' arguments''
     ty -> throwError $ ApplyeeNotFunction a ty
+checkExpression (ReportExpression a subroutine) = do
+  subroutine' <- checkExpression subroutine
+  case typeOf subroutine' of
+    FunctionType _ _ _ -> pure ()
+    ProcedureType _ _ _ -> pure ()
+    _ -> throwError $ ReportNotSubroutine a
+  pure $ ReportExpression (a, ReportType a) subroutine'
+checkExpression (VariableExpression _ (Just _) _) =
+  error "Not yet implemented: checkExpression on qualified variables."
+checkExpression (VariableExpression a Nothing name) = do
+  currentNS <- use csCurrentNamespace
+  local <- Reader.asks (Map.lookup name . view ceVariables)
+  global <- use $ csGlobalVariables . at (currentNS, name)
+  case (local, global) of
+    (Nothing, Nothing) -> throwError (UnknownVariableError a name)
+    (Just ty, _)       -> pure $ VariableExpression (a, ty) Nothing name
+    (Nothing, Just ty) -> pure $ VariableExpression (a, ty) (Just currentNS) name
 
 checkType :: Type PostParse -> Check (Type PostCheck)
 checkType (FunctionType a parameters returnType) = do
@@ -180,13 +188,8 @@ checkType (ProcedureType a using giving) = do
   using' <- traverse checkType using
   giving' <- traverse checkType giving
   pure $ ProcedureType a using' giving'
-checkType (SetType a element) = do
-  element' <- checkType element
-  pure $ SetType a element'
-checkType (TextType a) =
-  pure $ TextType a
-checkType (UUIDType a) =
-  pure $ UUIDType a
+checkType (ReportType a) =
+  pure $ ReportType a
 
 
 
@@ -211,18 +214,12 @@ checkCoerce a = \ty e -> e <$ checkAssignable ty (typeOf e)
         throwError $ TypeMismatch a
       sequence_ [checkAssignable u1 u2 | u1 <- us1 | u2 <- us2]
       sequence_ [checkAssignable g1 g2 | g1 <- gs1 | g2 <- gs2]
-    checkAssignable (SetType _ e1) (SetType _ e2) = checkAssignable e1 e2
-    checkAssignable (TextType _) (TextType _) = pure ()
-    checkAssignable (UUIDType _) (UUIDType _) = pure ()
+    checkAssignable (ReportType _) (ReportType _) = pure ()
     checkAssignable _ _ = throwError $ TypeMismatch a
 
 checkIterable :: Expression PostParse -> Check (Expression PostCheck, Type PostCheck)
 checkIterable iterable = do
   iterable' <- checkExpression iterable
   elementType <- case typeOf iterable' of
-    SetType _ elementType -> pure elementType
     _ -> throwError $ NotIterable (expressionAnnotation iterable)
   pure (iterable', elementType)
-
-typeOf :: Expression PostCheck -> Type PostCheck
-typeOf = snd . expressionAnnotation

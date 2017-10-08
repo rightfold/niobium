@@ -48,12 +48,17 @@ data ExecuteQueryResultAction
 
 
 data Expression s
-  = VariableExpression (ExpressionAnnotation s) (Maybe NamespaceName) VariableName
-  | ApplyExpression (ExpressionAnnotation s) (Expression s) [Expression s]
+  = ApplyExpression (ExpressionAnnotation s) (Expression s) [Expression s]
+  | ReportExpression (ExpressionAnnotation s) (Expression s)
+  | VariableExpression (ExpressionAnnotation s) (Maybe NamespaceName) VariableName
 
 expressionAnnotation :: Expression s -> ExpressionAnnotation s
-expressionAnnotation (VariableExpression a _ _) = a
 expressionAnnotation (ApplyExpression a _ _) = a
+expressionAnnotation (ReportExpression a _) = a
+expressionAnnotation (VariableExpression a _ _) = a
+
+typeOf :: Expression PostCheck -> Type PostCheck
+typeOf = snd . expressionAnnotation
 
 
 
@@ -61,17 +66,13 @@ data Type s
   = FunctionType (TypeAnnotation s) [Type s] (Type s)
   | IntType (TypeAnnotation s)
   | ProcedureType (TypeAnnotation s) [Type s] [Type s]
-  | SetType (TypeAnnotation s) (Type s)
-  | TextType (TypeAnnotation s)
-  | UUIDType (TypeAnnotation s)
+  | ReportType (TypeAnnotation s)
 
 typeAnnotation :: Type s -> TypeAnnotation s
 typeAnnotation (FunctionType a _ _) = a
 typeAnnotation (IntType a) = a
 typeAnnotation (ProcedureType a _ _) = a
-typeAnnotation (SetType a _) = a
-typeAnnotation (TextType a) = a
-typeAnnotation (UUIDType a) = a
+typeAnnotation (ReportType a) = a
 
 
 

@@ -35,10 +35,12 @@ data Token
   | GivingKeyword
   | IgnoreRowsKeyword
   | InKeyword
+  | IntKeyword
   | MultiplyKeyword
   | NamespaceKeyword
   | NullNamespaceKeyword
   | ProcedureKeyword
+  | ReportKeyword
   | SingleRowKeyword
   | ToKeyword
   | UsingKeyword
@@ -89,10 +91,12 @@ identifierOrKeyword = do
     "GIVING" -> GivingKeyword
     "IGNORE-ROWS" -> IgnoreRowsKeyword
     "IN" -> InKeyword
+    "INT" -> IntKeyword
     "MULTIPLY" -> MultiplyKeyword
     "NAMESPACE" -> NamespaceKeyword
     "NULL-NAMESPACE" -> NullNamespaceKeyword
     "PROCEDURE" -> ProcedureKeyword
+    "REPORT" -> ReportKeyword
     "SINGLE-ROW" -> SingleRowKeyword
     "TO" -> ToKeyword
     "USING" -> UsingKeyword

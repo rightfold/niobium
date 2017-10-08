@@ -186,12 +186,10 @@ expression1 :: Parser (Expression PostParse)
 expression1 = applyExpression expression0
 
 expression0 :: Parser (Expression PostParse)
-expression0 = variableExpression
-
-variableExpression :: Parser (Expression PostParse)
-variableExpression = do
-  (position, name) <- variableName
-  pure $ VariableExpression position Nothing name
+expression0 = P.choice
+  [ variableExpression
+  , reportExpression expression
+  ]
 
 applyExpression :: Parser (Expression PostParse) -> Parser (Expression PostParse)
 applyExpression next = do
@@ -204,38 +202,34 @@ applyExpression next = do
     pure arguments
   pure $ foldl' (ApplyExpression position) function argumentLists
 
+reportExpression :: Parser (Expression PostParse) -> Parser (Expression PostParse)
+reportExpression next = do
+  Lexeme position _ <- token ReportKeyword
+  subroutine <- next
+  pure $ ReportExpression position subroutine
+
+variableExpression :: Parser (Expression PostParse)
+variableExpression = do
+  (position, name) <- variableName
+  pure $ VariableExpression position Nothing name
+
 
 
 type_ :: Parser (Type PostParse)
 type_ = P.choice
   [ intType
-  , setType
-  , textType
-  , uuidType
+  , reportType
   ]
 
 intType :: Parser (Type PostParse)
 intType = do
-  Lexeme position _ <- token $ Identifier "int"
+  Lexeme position _ <- token IntKeyword
   pure $ IntType position
 
-setType :: Parser (Type PostParse)
-setType = do
-  Lexeme position _ <- token $ Identifier "set"
-  _ <- token LeftParenthesis
-  element <- type_
-  _ <- token RightParenthesis
-  pure $ SetType position element
-
-textType :: Parser (Type PostParse)
-textType = do
-  Lexeme position _ <- token $ Identifier "text"
-  pure $ TextType position
-
-uuidType :: Parser (Type PostParse)
-uuidType = do
-  Lexeme position _ <- token $ Identifier "uuid"
-  pure $ UUIDType position
+reportType :: Parser (Type PostParse)
+reportType = do
+  Lexeme position _ <- token ReportKeyword
+  pure $ ReportType position
 
 
 

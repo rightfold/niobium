@@ -13,14 +13,14 @@ module Niobiumc.Codegen.CXX
   , codegenExpression
   ) where
 
-import Control.Lens ((.=), (<<+=), makeLenses, use)
+import Control.Lens ((<<+=), makeLenses)
 import Control.Monad.RWS (RWS, runRWS, tell)
 import Data.ByteString.Builder (Builder)
-import Data.Foldable (fold, foldl', traverse_)
+import Data.Foldable (fold, foldl', for_, traverse_)
 import Data.Semigroup ((<>))
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
-import Niobiumc.Syntax (Declaration (..), ExecuteQueryResultAction (..), Expression (..), NamespaceName (..), PostCheck, Statement (..), VariableName (..))
+import Niobiumc.Syntax (Declaration (..), ExecuteQueryResultAction (..), Expression (..), NamespaceName (..), PostCheck, Statement (..), Type (..), VariableName (..), typeOf)
 
 import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Builder as Builder
@@ -32,7 +32,6 @@ type Codegen = RWS () Builder CodegenState
 data CodegenState = CodegenState
   { _csNextTemporary :: Word
   , _csNextQueryResult :: Word
-  , _csCurrentNamespace :: NamespaceName
   }
 
 $(makeLenses ''CodegenState)
@@ -41,7 +40,6 @@ runCodegen :: Codegen a -> (a, Builder)
 runCodegen action = let (a, _, c) = runRWS action () state in (a, c)
   where state = CodegenState { _csNextTemporary = 0
                              , _csNextQueryResult = 0
-                             , _csCurrentNamespace = NamespaceName []
                              }
 
 
@@ -51,6 +49,7 @@ codegenHeader = do
   tell $ "#include <niobium/context.hpp>\n"
   tell $ "#include <niobium/execution_log.hpp>\n"
   tell $ "#include <niobium/evaluation.hpp>\n"
+  tell $ "#include <niobium/interface.hpp>\n"
   tell $ "#include <niobium/query.hpp>\n"
   tell $ "#include <niobium/value.hpp>\n"
 
@@ -60,22 +59,20 @@ codegenFooter = pure ()
 
 
 codegenDeclaration :: Declaration PostCheck -> Codegen ()
-codegenDeclaration (NamespaceDeclaration _ ns) = csCurrentNamespace .= ns
+codegenDeclaration (NamespaceDeclaration _ _) = pure ()
 codegenDeclaration (UsingDeclaration _ _) = pure ()
-codegenDeclaration (FunctionDeclaration _ name parameters _ body) = do
-  currentNS <- use csCurrentNamespace
+codegenDeclaration (FunctionDeclaration (_, currentNS) name parameters _ body) = do
   let parameters' = [ "nb::value " <> newLocal p | (p, _) <- parameters ]
-  tell $ "extern \"C\" nb::value " <> newGlobal currentNS name
+  tell $ "nb::value " <> newGlobal currentNS name
   tell $ "(" <> intercalate ", " parameters' <> ") {\n"
   result <- codegenExpression body
   tell $ "return " <> result <> ";\n"
   tell $ "}\n"
-codegenDeclaration (ProcedureDeclaration _ name using giving body) = do
-  currentNS <- use csCurrentNamespace
+codegenDeclaration (ProcedureDeclaration (_, currentNS) name using giving body) = do
   let using' = [ "nb::value " <> newLocal u | (u, _) <- using ]
       giving' = [ "nb::value& " <> newLocal g | (g, _) <- giving ]
       context = "nb::context& context"
-  tell $ "extern \"C\" void " <> newGlobal currentNS name
+  tell $ "void " <> newGlobal currentNS name
   tell $ "(" <> intercalate ", " (context : using' <> giving') <> ") {\n"
   tell $ "nb::execution_log::enter(context, " <> stringLiteral (fullName currentNS name) <> ");\n"
   traverse_ codegenStatement body
@@ -117,16 +114,46 @@ codegenStatement (MultiplyStatement _ x y z) = do
   tell $ "NB_MULTIPLY(" <> intercalate ", " [z', x', y'] <> ");\n"
 
 codegenExpression :: Expression PostCheck -> Codegen Builder
-codegenExpression (VariableExpression _ Nothing name) = getLocal name
-codegenExpression (VariableExpression _ (Just ns) name) =
-  -- TODO(rightfold): Wrap function or procedure in nb::value.
-  getGlobal ns name
 codegenExpression (ApplyExpression _ applyee arguments) = do
   applyee' <- codegenExpression applyee
   arguments' <- traverse codegenExpression arguments
   result <- newTemporary
   tell $ "NB_APPLY(" <> intercalate ", " (result : applyee' : arguments') <> ");\n"
   pure result
+codegenExpression (ReportExpression _ subroutine) = do
+  let (usingTypes, givingTypes) = case typeOf subroutine of
+        FunctionType _ arguments returnType -> (arguments, [returnType])
+        ProcedureType _ using giving -> (using, giving)
+        _ -> error "codegenDeclaration: invalid type of report subroutine"
+
+  result <- newTemporary
+  tell $ result <> " = nb::evaluation::report"
+  tell $ "([=] (nb::context& context, std::streambuf& using_, std::streambuf& giving) {\n"
+
+  using  <- sequence [ newTemporary | _ <- usingTypes  ]
+  giving <- sequence [ newTemporary | _ <- givingTypes ]
+
+  for_ (using `zip` usingTypes) $ \(v, t) ->
+    tell $ v <> " = nb::interface::read_" <> reifyType t <> "(using_);\n"
+
+  subroutine' <- codegenExpression subroutine
+  tell $ "NB_CALL(" <> intercalate ", " (subroutine' : using ++ giving) <> ");\n"
+
+  for_ (giving `zip` givingTypes) $ \(v, t) ->
+    tell $ "nb::interface::write_" <> reifyType t <> "(giving, " <> v <> ");\n"
+
+  tell $ "});\n"
+  pure result
+  where
+    reifyType :: Type PostCheck -> Builder
+    reifyType (FunctionType _ _ _) = error "NYI"
+    reifyType (IntType _) = "int"
+    reifyType (ProcedureType _ _ _) = error "NYI"
+    reifyType (ReportType _) = error "NYI"
+codegenExpression (VariableExpression _ Nothing name) = getLocal name
+codegenExpression (VariableExpression _ (Just ns) name) =
+  -- TODO(rightfold): Wrap function or procedure in nb::value.
+  getGlobal ns name
 
 
 

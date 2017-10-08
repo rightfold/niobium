@@ -1,7 +1,12 @@
+NAMESPACE example
+
 PROCEDURE arithmetic
-USING a int, b int
-GIVING sum int, product int
+USING a INT, b INT
+GIVING sum INT, product INT
 BEGIN
   ADD a TO b GIVING sum
   MULTIPLY a BY b GIVING product
 END
+
+FUNCTION arithmetic_report() REPORT =
+  REPORT arithmetic
