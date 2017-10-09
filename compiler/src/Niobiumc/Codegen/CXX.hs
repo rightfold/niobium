@@ -120,14 +120,14 @@ codegenExpression (ApplyExpression _ applyee arguments) = do
   result <- newTemporary
   tell $ "NB_APPLY(" <> intercalate ", " (result : applyee' : arguments') <> ");\n"
   pure result
-codegenExpression (ReportExpression _ subroutine) = do
+codegenExpression (ReportInterfaceExpression _ subroutine) = do
   let (usingTypes, givingTypes) = case typeOf subroutine of
         FunctionType _ arguments returnType -> (arguments, [returnType])
         ProcedureType _ using giving -> (using, giving)
         _ -> error "codegenDeclaration: invalid type of report subroutine"
 
   result <- newTemporary
-  tell $ result <> " = nb::evaluation::report"
+  tell $ result <> " = nb::evaluation::report_interface"
   tell $ "([=] (nb::context& context, std::streambuf& using_, std::streambuf& giving) {\n"
 
   using  <- sequence [ newTemporary | _ <- usingTypes  ]
@@ -149,7 +149,7 @@ codegenExpression (ReportExpression _ subroutine) = do
     reifyType (FunctionType _ _ _) = error "NYI"
     reifyType (IntType _) = "int"
     reifyType (ProcedureType _ _ _) = error "NYI"
-    reifyType (ReportType _) = error "NYI"
+    reifyType (ReportInterfaceType _) = error "NYI"
 codegenExpression (VariableExpression _ Nothing name) = getLocal name
 codegenExpression (VariableExpression _ (Just ns) name) =
   -- TODO(rightfold): Wrap function or procedure in nb::value.

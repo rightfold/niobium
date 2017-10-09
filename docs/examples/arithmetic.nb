@@ -22,5 +22,5 @@ BEGIN
   CALL @multiply USING a, b GIVING product
 END
 
-FUNCTION arithmetic_report() REPORT =
-  REPORT arithmetic
+FUNCTION arithmetic_report() REPORT-INTERFACE =
+  REPORT-INTERFACE arithmetic

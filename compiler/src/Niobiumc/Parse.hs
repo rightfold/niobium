@@ -188,7 +188,7 @@ expression1 = applyExpression expression0
 expression0 :: Parser (Expression PostParse)
 expression0 = P.choice
   [ variableExpression
-  , reportExpression expression
+  , reportInterfaceExpression expression
   ]
 
 applyExpression :: Parser (Expression PostParse) -> Parser (Expression PostParse)
@@ -202,11 +202,11 @@ applyExpression next = do
     pure arguments
   pure $ foldl' (ApplyExpression position) function argumentLists
 
-reportExpression :: Parser (Expression PostParse) -> Parser (Expression PostParse)
-reportExpression next = do
-  Lexeme position _ <- token ReportKeyword
+reportInterfaceExpression :: Parser (Expression PostParse) -> Parser (Expression PostParse)
+reportInterfaceExpression next = do
+  Lexeme position _ <- token ReportInterfaceKeyword
   subroutine <- next
-  pure $ ReportExpression position subroutine
+  pure $ ReportInterfaceExpression position subroutine
 
 variableExpression :: Parser (Expression PostParse)
 variableExpression = do
@@ -218,7 +218,7 @@ variableExpression = do
 type_ :: Parser (Type PostParse)
 type_ = P.choice
   [ intType
-  , reportType
+  , reportInterfaceType
   ]
 
 intType :: Parser (Type PostParse)
@@ -226,10 +226,10 @@ intType = do
   Lexeme position _ <- token IntKeyword
   pure $ IntType position
 
-reportType :: Parser (Type PostParse)
-reportType = do
-  Lexeme position _ <- token ReportKeyword
-  pure $ ReportType position
+reportInterfaceType :: Parser (Type PostParse)
+reportInterfaceType = do
+  Lexeme position _ <- token ReportInterfaceKeyword
+  pure $ ReportInterfaceType position
 
 
 

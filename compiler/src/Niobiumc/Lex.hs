@@ -41,7 +41,7 @@ data Token
   | NamespaceKeyword
   | NullNamespaceKeyword
   | ProcedureKeyword
-  | ReportKeyword
+  | ReportInterfaceKeyword
   | SingleRowKeyword
   | ToKeyword
   | UsingKeyword
@@ -98,7 +98,7 @@ identifierOrKeyword = do
     (False, "NAMESPACE") -> NamespaceKeyword
     (False, "NULL-NAMESPACE") -> NullNamespaceKeyword
     (False, "PROCEDURE") -> ProcedureKeyword
-    (False, "REPORT") -> ReportKeyword
+    (False, "REPORT-INTERFACE") -> ReportInterfaceKeyword
     (False, "SINGLE-ROW") -> SingleRowKeyword
     (False, "TO") -> ToKeyword
     (False, "USING") -> UsingKeyword

@@ -53,10 +53,10 @@
 namespace nb {
   namespace evaluation {
     template<typename F>
-    value report(F body) {
-      class report : public nb::interface::report {
+    value report_interface(F body) {
+      class implementation : public nb::interface::report {
       public:
-        report(F body)
+        implementation(F body)
           : body(std::move(body)) {
         }
 
@@ -69,7 +69,7 @@ namespace nb {
       private:
         F body;
       };
-      return nb::value::new_report<report>(body);
+      return nb::value::new_report<implementation>(body);
     }
   }
 }
