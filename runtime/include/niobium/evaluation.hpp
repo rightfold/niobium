@@ -1,6 +1,6 @@
 #pragma once
 
-#include <niobium/interface.hpp>
+#include <niobium/handler.hpp>
 #include <niobium/query.hpp>
 #include <niobium/value.hpp>
 
@@ -53,8 +53,8 @@
 namespace nb {
   namespace evaluation {
     template<typename F>
-    value report_interface(F body) {
-      class implementation : public nb::interface::report {
+    value report_handler(F body) {
+      class implementation : public nb::handler::report {
       public:
         implementation(F body)
           : body(std::move(body)) {
@@ -69,7 +69,7 @@ namespace nb {
       private:
         F body;
       };
-      return nb::value::new_report<implementation>(body);
+      return nb::value::new_report_handler<implementation>(body);
     }
   }
 }

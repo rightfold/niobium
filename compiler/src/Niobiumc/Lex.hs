@@ -25,7 +25,6 @@ data Token
   = Identifier Text
 
   | AddKeyword
-  | BeginKeyword
   | ByKeyword
   | CallKeyword
   | DoKeyword
@@ -35,13 +34,15 @@ data Token
   | FunctionKeyword
   | GivingKeyword
   | IgnoreRowsKeyword
+  | ImplementationKeyword
   | InKeyword
   | IntKeyword
+  | InterfaceKeyword
   | MultiplyKeyword
   | NamespaceKeyword
   | NullNamespaceKeyword
   | ProcedureKeyword
-  | ReportInterfaceKeyword
+  | ReportHandlerKeyword
   | SingleRowKeyword
   | ToKeyword
   | UsingKeyword
@@ -82,7 +83,6 @@ identifierOrKeyword = do
   name <- fmap Text.pack $ (:) <$> head <*> P.many tail
   pure $ case (escape, Text.toUpper name) of
     (False, "ADD") -> AddKeyword
-    (False, "BEGIN") -> BeginKeyword
     (False, "BY") -> ByKeyword
     (False, "CALL") -> CallKeyword
     (False, "DO") -> DoKeyword
@@ -92,13 +92,15 @@ identifierOrKeyword = do
     (False, "FUNCTION") -> FunctionKeyword
     (False, "GIVING") -> GivingKeyword
     (False, "IGNORE-ROWS") -> IgnoreRowsKeyword
+    (False, "IMPLEMENTATION") -> ImplementationKeyword
     (False, "IN") -> InKeyword
     (False, "INT") -> IntKeyword
+    (False, "INTERFACE") -> InterfaceKeyword
     (False, "MULTIPLY") -> MultiplyKeyword
     (False, "NAMESPACE") -> NamespaceKeyword
     (False, "NULL-NAMESPACE") -> NullNamespaceKeyword
     (False, "PROCEDURE") -> ProcedureKeyword
-    (False, "REPORT-INTERFACE") -> ReportInterfaceKeyword
+    (False, "REPORT-HANDLER") -> ReportHandlerKeyword
     (False, "SINGLE-ROW") -> SingleRowKeyword
     (False, "TO") -> ToKeyword
     (False, "USING") -> UsingKeyword

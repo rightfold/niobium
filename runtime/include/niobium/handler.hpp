@@ -6,7 +6,7 @@
 #include <streambuf>
 
 namespace nb {
-  namespace interface {
+  namespace handler {
     class report {
     public:
       virtual ~report() = 0;

@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace nb {
-  namespace interface {
+  namespace handler {
     class report;
   }
 
@@ -20,7 +20,7 @@ namespace nb {
     static value new_array(std::size_t);
     static value new_string(char const*, std::size_t);
     template<typename T, typename... Ts>
-    static value new_report(Ts&&...);
+    static value new_report_handler(Ts&&...);
 
     std::int64_t integer_value() const;
 
@@ -31,22 +31,22 @@ namespace nb {
     std::size_t string_length() const;
     char *string_bytes() const;
 
-    interface::report const& report_value() const;
+    handler::report const& report_handler_value() const;
 
   private:
     using integer_type = std::int64_t;
     using array_type = std::shared_ptr<std::vector<value>>;
     using string_type = std::shared_ptr<std::string>;
-    using report_type = std::shared_ptr<interface::report>;
+    using report_handler_type = std::shared_ptr<handler::report>;
 
-    boost::variant<integer_type, array_type, string_type, report_type> variant;
+    boost::variant<integer_type, array_type, string_type, report_handler_type> variant;
   };
 
   template<typename T, typename... Ts>
-  value value::new_report(Ts&&... arguments) {
+  value value::new_report_handler(Ts&&... arguments) {
     auto pointer = std::make_shared<T>(std::forward<Ts>(arguments)...);
     value result;
-    result.variant = static_cast<value::report_type>(pointer);
+    result.variant = static_cast<value::report_handler_type>(pointer);
     return result;
   }
 

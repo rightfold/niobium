@@ -49,7 +49,7 @@ codegenHeader = do
   tell $ "#include <niobium/context.hpp>\n"
   tell $ "#include <niobium/execution_log.hpp>\n"
   tell $ "#include <niobium/evaluation.hpp>\n"
-  tell $ "#include <niobium/interface.hpp>\n"
+  tell $ "#include <niobium/handler.hpp>\n"
   tell $ "#include <niobium/query.hpp>\n"
   tell $ "#include <niobium/value.hpp>\n"
 
@@ -120,27 +120,27 @@ codegenExpression (ApplyExpression _ applyee arguments) = do
   result <- newTemporary
   tell $ "NB_APPLY(" <> intercalate ", " (result : applyee' : arguments') <> ");\n"
   pure result
-codegenExpression (ReportInterfaceExpression _ subroutine) = do
+codegenExpression (ReportHandlerExpression _ subroutine) = do
   let (usingTypes, givingTypes) = case typeOf subroutine of
         FunctionType _ arguments returnType -> (arguments, [returnType])
         ProcedureType _ using giving -> (using, giving)
         _ -> error "codegenDeclaration: invalid type of report subroutine"
 
   result <- newTemporary
-  tell $ result <> " = nb::evaluation::report_interface"
+  tell $ result <> " = nb::evaluation::report_handler"
   tell $ "([=] (nb::context& context, std::streambuf& using_, std::streambuf& giving) {\n"
 
   using  <- sequence [ newTemporary | _ <- usingTypes  ]
   giving <- sequence [ newTemporary | _ <- givingTypes ]
 
   for_ (using `zip` usingTypes) $ \(v, t) ->
-    tell $ v <> " = nb::interface::read_" <> reifyType t <> "(using_);\n"
+    tell $ v <> " = nb::handler::read_" <> reifyType t <> "(using_);\n"
 
   subroutine' <- codegenExpression subroutine
   tell $ "NB_CALL(" <> intercalate ", " (subroutine' : using ++ giving) <> ");\n"
 
   for_ (giving `zip` givingTypes) $ \(v, t) ->
-    tell $ "nb::interface::write_" <> reifyType t <> "(giving, " <> v <> ");\n"
+    tell $ "nb::handler::write_" <> reifyType t <> "(giving, " <> v <> ");\n"
 
   tell $ "});\n"
   pure result
@@ -149,7 +149,7 @@ codegenExpression (ReportInterfaceExpression _ subroutine) = do
     reifyType (FunctionType _ _ _) = error "NYI"
     reifyType (IntType _) = "int"
     reifyType (ProcedureType _ _ _) = error "NYI"
-    reifyType (ReportInterfaceType _) = error "NYI"
+    reifyType (ReportHandlerType _) = error "NYI"
 codegenExpression (VariableExpression _ Nothing name) = getLocal name
 codegenExpression (VariableExpression _ (Just ns) name) =
   -- TODO(rightfold): Wrap function or procedure in nb::value.

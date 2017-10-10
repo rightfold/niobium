@@ -159,13 +159,13 @@ checkExpression (ApplyExpression a applyee arguments) = do
                                                       | e <- arguments' ]
           pure $ ApplyExpression (a, returnType) applyee' arguments''
     ty -> throwError $ ApplyeeNotFunction a ty
-checkExpression (ReportInterfaceExpression a subroutine) = do
+checkExpression (ReportHandlerExpression a subroutine) = do
   subroutine' <- checkExpression subroutine
   case typeOf subroutine' of
     FunctionType _ _ _ -> pure ()
     ProcedureType _ _ _ -> pure ()
     _ -> throwError $ ReportImplementationNotSubroutine a
-  pure $ ReportInterfaceExpression (a, ReportInterfaceType a) subroutine'
+  pure $ ReportHandlerExpression (a, ReportHandlerType a) subroutine'
 checkExpression (VariableExpression _ (Just _) _) =
   error "Not yet implemented: checkExpression on qualified variables."
 checkExpression (VariableExpression a Nothing name) = do
@@ -188,8 +188,8 @@ checkType (ProcedureType a using giving) = do
   using' <- traverse checkType using
   giving' <- traverse checkType giving
   pure $ ProcedureType a using' giving'
-checkType (ReportInterfaceType a) =
-  pure $ ReportInterfaceType a
+checkType (ReportHandlerType a) =
+  pure $ ReportHandlerType a
 
 
 
@@ -214,7 +214,7 @@ checkCoerce a = \ty e -> e <$ checkAssignable ty (typeOf e)
         throwError $ TypeMismatch a
       sequence_ [checkAssignable u1 u2 | u1 <- us1 | u2 <- us2]
       sequence_ [checkAssignable g1 g2 | g1 <- gs1 | g2 <- gs2]
-    checkAssignable (ReportInterfaceType _) (ReportInterfaceType _) = pure ()
+    checkAssignable (ReportHandlerType _) (ReportHandlerType _) = pure ()
     checkAssignable _ _ = throwError $ TypeMismatch a
 
 checkIterable :: Expression PostParse -> Check (Expression PostCheck, Type PostCheck)

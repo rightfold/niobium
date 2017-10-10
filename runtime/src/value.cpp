@@ -1,5 +1,5 @@
 #include <niobium/detail/utility.hpp>
-#include <niobium/interface.hpp>
+#include <niobium/handler.hpp>
 #include <niobium/value.hpp>
 
 #include <boost/variant.hpp>
@@ -56,8 +56,8 @@ void nb::value::set_array_element(std::size_t index, value element) {
 
 
 
-nb::interface::report const& nb::value::report_value() const {
-  auto& pointer = boost::get<report_type>(variant);
+nb::handler::report const& nb::value::report_handler_value() const {
+  auto& pointer = boost::get<report_handler_type>(variant);
   return *pointer;
 }
 

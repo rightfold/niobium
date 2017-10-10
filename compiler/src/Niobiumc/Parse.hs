@@ -84,6 +84,7 @@ procedureDeclaration :: Parser (Declaration PostParse)
 procedureDeclaration = do
   Lexeme position _ <- token ProcedureKeyword
   name <- variableName'
+  _ <- token InterfaceKeyword
   using <- fmap fold . P.optionMaybe $ do
     _ <- token UsingKeyword
     parameters <- ((,) <$> variableName' <*> type_) `P.sepBy` token Comma
@@ -92,7 +93,7 @@ procedureDeclaration = do
     _ <- token GivingKeyword
     parameters <- ((,) <$> variableName' <*> type_) `P.sepBy` token Comma
     pure parameters
-  _ <- token BeginKeyword
+  _ <- token ImplementationKeyword
   body <- P.many statement
   _ <- token EndKeyword
   pure $ ProcedureDeclaration position name using giving body
@@ -188,7 +189,7 @@ expression1 = applyExpression expression0
 expression0 :: Parser (Expression PostParse)
 expression0 = P.choice
   [ variableExpression
-  , reportInterfaceExpression expression
+  , reportHandlerExpression expression
   ]
 
 applyExpression :: Parser (Expression PostParse) -> Parser (Expression PostParse)
@@ -202,11 +203,11 @@ applyExpression next = do
     pure arguments
   pure $ foldl' (ApplyExpression position) function argumentLists
 
-reportInterfaceExpression :: Parser (Expression PostParse) -> Parser (Expression PostParse)
-reportInterfaceExpression next = do
-  Lexeme position _ <- token ReportInterfaceKeyword
+reportHandlerExpression :: Parser (Expression PostParse) -> Parser (Expression PostParse)
+reportHandlerExpression next = do
+  Lexeme position _ <- token ReportHandlerKeyword
   subroutine <- next
-  pure $ ReportInterfaceExpression position subroutine
+  pure $ ReportHandlerExpression position subroutine
 
 variableExpression :: Parser (Expression PostParse)
 variableExpression = do
@@ -218,7 +219,7 @@ variableExpression = do
 type_ :: Parser (Type PostParse)
 type_ = P.choice
   [ intType
-  , reportInterfaceType
+  , reportHandlerType
   ]
 
 intType :: Parser (Type PostParse)
@@ -226,10 +227,10 @@ intType = do
   Lexeme position _ <- token IntKeyword
   pure $ IntType position
 
-reportInterfaceType :: Parser (Type PostParse)
-reportInterfaceType = do
-  Lexeme position _ <- token ReportInterfaceKeyword
-  pure $ ReportInterfaceType position
+reportHandlerType :: Parser (Type PostParse)
+reportHandlerType = do
+  Lexeme position _ <- token ReportHandlerKeyword
+  pure $ ReportHandlerType position
 
 
 
