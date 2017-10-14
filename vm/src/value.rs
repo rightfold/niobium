@@ -8,6 +8,8 @@ pub enum Type {
 
 #[derive(Clone, Debug)]
 pub enum Value {
+    Null,
+
     Int(i32),
 
     Procedure(Rc<Closure>),

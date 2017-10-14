@@ -1,21 +1,63 @@
 use code::{Destination, Global, Instruction, Local, Source};
-use value::Value;
+use value::{Closure, Value};
+
+#[derive(Clone, Copy, Debug)]
+pub enum Status {
+    ReturnFromProcedure,
+    JumpRelative(usize),
+}
 
 #[derive(Clone, Debug)]
 pub enum Exception {
     NoSuchGlobal(Global),
     NoSuchLocal(Local),
+    NoSuchInstruction,
     NotAnInt,
+    NotAProcedure,
 }
 
-pub fn interpret(globals: &[Value], locals: &mut [Value], instruction: &Instruction) -> Result<(), Exception> {
+pub fn call_procedure(globals: &[Value], caller_locals: &mut [Value], procedure: &Closure, caller_using: &[Source], caller_giving: &[Destination]) -> Result<(), Exception> {
+    let free_variables_offset = 0;
+    let using_offset = free_variables_offset + procedure.free_variables.len();
+    let giving_offset = using_offset + caller_using.len();
+    let auxiliary_offset = giving_offset + caller_giving.len();
+
+    let mut callee_locals = vec![Value::Null; procedure.chunk.local_count as usize];
+
+    callee_locals[free_variables_offset .. using_offset]
+        .clone_from_slice(&procedure.free_variables);
+
+    for (local, source) in callee_locals[using_offset .. giving_offset].iter_mut().zip(caller_using) {
+        *local = read_source(globals, caller_locals, source)? }
+
+    interpret_many(globals, &mut callee_locals, &procedure.chunk.instructions)?;
+
+    for (local, &destination) in callee_locals[giving_offset .. auxiliary_offset].iter_mut().zip(caller_giving) {
+        write_destination(caller_locals, destination, local.clone())? }
+
+    Ok(())
+}
+
+pub fn interpret_many(globals: &[Value], locals: &mut [Value], instructions: &[Instruction]) -> Result<(), Exception> {
+    let mut program_counter = 0;
+    loop {
+        let instruction = instructions.get(program_counter).ok_or(Exception::NoSuchInstruction)?;
+        let status = interpret_one(globals, locals, &instruction)?;
+        match status {
+            Status::ReturnFromProcedure => return Ok(()),
+            Status::JumpRelative(diff) => program_counter += diff,
+        }
+    }
+}
+
+pub fn interpret_one(globals: &[Value], locals: &mut [Value], instruction: &Instruction) -> Result<Status, Exception> {
     match instruction {
         &Instruction::AddInt(ref source_a, ref source_b, destination) => {
             let int_a = read_int(&read_source(globals, locals, source_a)?)?;
             let int_b = read_int(&read_source(globals, locals, source_b)?)?;
             let result = Value::Int(int_a.wrapping_add(int_b));
             write_destination(locals, destination, result)?;
-            Ok(())
+            Ok(Status::JumpRelative(1))
         },
 
         &Instruction::MultiplyInt(ref source_a, ref source_b, destination) => {
@@ -23,8 +65,18 @@ pub fn interpret(globals: &[Value], locals: &mut [Value], instruction: &Instruct
             let int_b = read_int(&read_source(globals, locals, source_b)?)?;
             let result = Value::Int(int_a.wrapping_mul(int_b));
             write_destination(locals, destination, result)?;
-            Ok(())
+            Ok(Status::JumpRelative(1))
         },
+
+        &Instruction::CallProcedure(ref callee, ref using, ref giving) => {
+            let procedure_value = read_source(globals, locals, callee)?;
+            let procedure = read_procedure(&procedure_value)?;
+            call_procedure(globals, locals, procedure, using, giving)?;
+            Ok(Status::JumpRelative(1))
+        },
+
+        &Instruction::ReturnFromProcedure =>
+            Ok(Status::ReturnFromProcedure),
 
         _ => unimplemented!(),
     }
@@ -34,6 +86,13 @@ fn read_int(value: &Value) -> Result<i32, Exception> {
     match value {
         &Value::Int(result) => Ok(result),
         _ => Err(Exception::NotAnInt),
+    }
+}
+
+fn read_procedure(value: &Value) -> Result<&Closure, Exception> {
+    match value {
+        &Value::Procedure(ref closure) => Ok(closure),
+        _ => Err(Exception::NotAProcedure),
     }
 }
 
@@ -67,8 +126,10 @@ fn write_destination(locals: &mut [Value], destination: Destination, value: Valu
 
 #[cfg(test)]
 mod tests {
+    use code::Chunk;
     use rand;
     use rand::Rng;
+    use std::rc::Rc;
     use super::*;
 
     pub fn new_source(globals: &mut Vec<Value>, locals: &mut Vec<Value>, value: Value) -> Source {
@@ -119,7 +180,7 @@ mod tests {
             let destination = new_destination(&mut locals);
 
             let instruction = make_instruction(source_a, source_b, destination);
-            let status = interpret(&globals, &mut locals, &instruction);
+            let status = interpret_one(&globals, &mut locals, &instruction);
 
             assert!(status.is_ok(), "status: {:?}", status);
             with_destination(&locals, destination, |result| {
@@ -139,5 +200,71 @@ mod tests {
     #[test]
     fn test_multiply_int() {
         test_arithmetic_int(Instruction::MultiplyInt, 8, 3, 24);
+    }
+
+    #[test]
+    fn test_call_procedure() {
+        for _ in 0 .. 100 {
+            let mut globals = vec![];
+            let mut locals = vec![];
+
+            let closure = Rc::new(Closure{
+                chunk: Rc::new(Chunk{
+                    local_count: 1 + 2 + 2 + 1,
+                    instructions: vec![
+                        Instruction::AddInt(
+                            Source::Local(Local(0)),
+                            Source::Local(Local(1)),
+                            Destination::Local(Local(5)),
+                        ),
+                        Instruction::AddInt(
+                            Source::Local(Local(5)),
+                            Source::Local(Local(2)),
+                            Destination::Local(Local(3)),
+                        ),
+                        Instruction::MultiplyInt(
+                            Source::Local(Local(0)),
+                            Source::Local(Local(1)),
+                            Destination::Local(Local(5)),
+                        ),
+                        Instruction::MultiplyInt(
+                            Source::Local(Local(5)),
+                            Source::Local(Local(2)),
+                            Destination::Local(Local(4)),
+                        ),
+                        Instruction::ReturnFromProcedure,
+                    ],
+                }),
+                free_variables: vec![Value::Int(2)],
+            });
+            let callee = new_source(&mut globals, &mut locals, Value::Procedure(closure));
+
+            let using_a = new_source(&mut globals, &mut locals, Value::Int(8));
+            let using_b = new_source(&mut globals, &mut locals, Value::Int(3));
+
+            let giving_a = new_destination(&mut locals);
+            let giving_b = new_destination(&mut locals);
+
+            let instruction = Instruction::CallProcedure(
+                callee,
+                vec![using_a, using_b],
+                vec![giving_a, giving_b],
+            );
+            let status = interpret_one(&globals, &mut locals, &instruction);
+
+            assert!(status.is_ok(), "status: {:?}", status);
+            with_destination(&locals, giving_a, |result| {
+                match result {
+                    &Value::Int(13) => (),
+                    _ => assert!(false, "result: {:?}", *result),
+                }
+            });
+            with_destination(&locals, giving_b, |result| {
+                match result {
+                    &Value::Int(48) => (),
+                    _ => assert!(false, "result: {:?}", *result),
+                }
+            });
+        }
     }
 }
