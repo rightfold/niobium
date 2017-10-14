@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use value::{Type, Value};
 
 #[derive(Clone, Copy, Debug)]
@@ -29,7 +30,7 @@ pub enum Instruction {
 
     ReturnFromFunction(Source),
 
-    MakeReportHandler(Source, Vec<Type>, Vec<Type>),
+    MakeReportHandler(Source, Rc<[Type]>, Rc<[Type]>, Destination),
 }
 
 #[derive(Clone, Debug)]

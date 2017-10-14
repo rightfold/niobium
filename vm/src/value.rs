@@ -25,7 +25,7 @@ pub struct Closure {
 
 #[derive(Clone, Debug)]
 pub struct ReportHandler {
-    pub implementation: Rc<Closure>,
-    pub using: Vec<Type>,
-    pub giving: Vec<Type>,
+    pub procedure: Rc<Closure>,
+    pub using: Rc<[Type]>,
+    pub giving: Rc<[Type]>,
 }

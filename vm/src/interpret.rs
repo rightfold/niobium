@@ -1,9 +1,11 @@
 use code::{Destination, Global, Instruction, Local, Source};
-use value::{Closure, Value};
+use std::rc::Rc;
+use value::{Closure, ReportHandler, Value};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Status {
     ReturnFromProcedure,
+    ReturnFromFunction(Value),
     JumpRelative(usize),
 }
 
@@ -38,13 +40,14 @@ pub fn call_procedure(globals: &[Value], caller_locals: &mut [Value], procedure:
     Ok(())
 }
 
-pub fn interpret_many(globals: &[Value], locals: &mut [Value], instructions: &[Instruction]) -> Result<(), Exception> {
+pub fn interpret_many(globals: &[Value], locals: &mut [Value], instructions: &[Instruction]) -> Result<Option<Value>, Exception> {
     let mut program_counter = 0;
     loop {
         let instruction = instructions.get(program_counter).ok_or(Exception::NoSuchInstruction)?;
         let status = interpret_one(globals, locals, &instruction)?;
         match status {
-            Status::ReturnFromProcedure => return Ok(()),
+            Status::ReturnFromProcedure => return Ok(None),
+            Status::ReturnFromFunction(value) => return Ok(Some(value)),
             Status::JumpRelative(diff) => program_counter += diff,
         }
     }
@@ -71,14 +74,30 @@ pub fn interpret_one(globals: &[Value], locals: &mut [Value], instruction: &Inst
         &Instruction::CallProcedure(ref callee, ref using, ref giving) => {
             let procedure_value = read_source(globals, locals, callee)?;
             let procedure = read_procedure(&procedure_value)?;
-            call_procedure(globals, locals, procedure, using, giving)?;
+            call_procedure(globals, locals, &procedure, using, giving)?;
             Ok(Status::JumpRelative(1))
         },
 
         &Instruction::ReturnFromProcedure =>
             Ok(Status::ReturnFromProcedure),
 
-        _ => unimplemented!(),
+        &Instruction::ReturnFromFunction(ref source) => {
+            let result = read_source(globals, locals, source)?;
+            Ok(Status::ReturnFromFunction(result))
+        },
+
+        &Instruction::MakeReportHandler(ref callee, ref using, ref giving, destination) => {
+            let procedure_value = read_source(globals, locals, callee)?;
+            let procedure = read_procedure(&procedure_value)?;
+            let report_handler = ReportHandler{
+                procedure: procedure,
+                using: using.clone(),
+                giving: giving.clone(),
+            };
+            let result = Value::ReportHandler(Rc::new(report_handler));
+            write_destination(locals, destination, result)?;
+            Ok(Status::JumpRelative(1))
+        },
     }
 }
 
@@ -89,9 +108,9 @@ fn read_int(value: &Value) -> Result<i32, Exception> {
     }
 }
 
-fn read_procedure(value: &Value) -> Result<&Closure, Exception> {
+fn read_procedure(value: &Value) -> Result<Rc<Closure>, Exception> {
     match value {
-        &Value::Procedure(ref closure) => Ok(closure),
+        &Value::Procedure(ref closure) => Ok(closure.clone()),
         _ => Err(Exception::NotAProcedure),
     }
 }
@@ -129,7 +148,6 @@ mod tests {
     use code::Chunk;
     use rand;
     use rand::Rng;
-    use std::rc::Rc;
     use super::*;
 
     pub fn new_source(globals: &mut Vec<Value>, locals: &mut Vec<Value>, value: Value) -> Source {
