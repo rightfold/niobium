@@ -2,5 +2,9 @@
 name = "niobiumvm"
 version = "0.0.0"
 
+[[bin]]
+name = "niobiumvm"
+doc = false
+
 [dev-dependencies]
 rand = "0.3"
