@@ -25,6 +25,7 @@ data Token
   = Identifier Text
 
   | AddKeyword
+  | AnonymousKeyword
   | ByKeyword
   | CallKeyword
   | DoKeyword
@@ -83,6 +84,7 @@ identifierOrKeyword = do
   name <- fmap Text.pack $ (:) <$> head <*> P.many tail
   pure $ case (escape, Text.toUpper name) of
     (False, "ADD") -> AddKeyword
+    (False, "ANONYMOUS") -> AnonymousKeyword
     (False, "BY") -> ByKeyword
     (False, "CALL") -> CallKeyword
     (False, "DO") -> DoKeyword
