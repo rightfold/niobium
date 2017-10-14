@@ -35,6 +35,7 @@ pub enum Instruction {
 
 #[derive(Clone, Debug)]
 pub struct Chunk {
+    pub name: Option<Rc<str>>,
     pub local_count: u32,
     pub instructions: Vec<Instruction>,
 }

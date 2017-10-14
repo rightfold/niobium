@@ -1,4 +1,5 @@
 use code::{Destination, Global, Instruction, Local, Source};
+use context::ExecutionLog;
 use std::rc::Rc;
 use value::{Closure, ReportHandler, Value};
 
@@ -18,7 +19,16 @@ pub enum Exception {
     NotAProcedure,
 }
 
-pub fn call_procedure(globals: &[Value], caller_locals: &mut [Value], procedure: &Closure, caller_using: &[Source], caller_giving: &[Destination]) -> Result<(), Exception> {
+pub fn call_procedure<Context>(context: Context, globals: &[Value], caller_locals: &mut [Value], procedure: &Closure, caller_using: &[Source], caller_giving: &[Destination]) -> Result<(), Exception>
+    where Context: Copy + ExecutionLog {
+    context.enter(procedure.chunk.name.as_ref().map(AsRef::as_ref));
+    let result = call_procedure_inner(context, globals, caller_locals, procedure, caller_using, caller_giving);
+    context.leave(result.as_ref().err());
+    result
+}
+
+fn call_procedure_inner<Context>(context: Context, globals: &[Value], caller_locals: &mut [Value], procedure: &Closure, caller_using: &[Source], caller_giving: &[Destination]) -> Result<(), Exception>
+    where Context: Copy + ExecutionLog {
     let free_variables_offset = 0;
     let using_offset = free_variables_offset + procedure.free_variables.len();
     let giving_offset = using_offset + caller_using.len();
@@ -32,7 +42,7 @@ pub fn call_procedure(globals: &[Value], caller_locals: &mut [Value], procedure:
     for (local, source) in callee_locals[using_offset .. giving_offset].iter_mut().zip(caller_using) {
         *local = read_source(globals, caller_locals, source)? }
 
-    interpret_many(globals, &mut callee_locals, &procedure.chunk.instructions)?;
+    interpret_many(context, globals, &mut callee_locals, &procedure.chunk.instructions)?;
 
     for (local, &destination) in callee_locals[giving_offset .. auxiliary_offset].iter_mut().zip(caller_giving) {
         write_destination(caller_locals, destination, local.clone())? }
@@ -40,11 +50,12 @@ pub fn call_procedure(globals: &[Value], caller_locals: &mut [Value], procedure:
     Ok(())
 }
 
-pub fn interpret_many(globals: &[Value], locals: &mut [Value], instructions: &[Instruction]) -> Result<Option<Value>, Exception> {
+pub fn interpret_many<Context>(context: Context, globals: &[Value], locals: &mut [Value], instructions: &[Instruction]) -> Result<Option<Value>, Exception>
+    where Context: Copy + ExecutionLog {
     let mut program_counter = 0;
     loop {
         let instruction = instructions.get(program_counter).ok_or(Exception::NoSuchInstruction)?;
-        let status = interpret_one(globals, locals, &instruction)?;
+        let status = interpret_one(context, globals, locals, &instruction)?;
         match status {
             Status::ReturnFromProcedure => return Ok(None),
             Status::ReturnFromFunction(value) => return Ok(Some(value)),
@@ -53,7 +64,8 @@ pub fn interpret_many(globals: &[Value], locals: &mut [Value], instructions: &[I
     }
 }
 
-pub fn interpret_one(globals: &[Value], locals: &mut [Value], instruction: &Instruction) -> Result<Status, Exception> {
+pub fn interpret_one<Context>(context: Context, globals: &[Value], locals: &mut [Value], instruction: &Instruction) -> Result<Status, Exception>
+    where Context: Copy + ExecutionLog {
     match instruction {
         &Instruction::AddInt(ref source_a, ref source_b, destination) => {
             let int_a = read_int(&read_source(globals, locals, source_a)?)?;
@@ -74,7 +86,7 @@ pub fn interpret_one(globals: &[Value], locals: &mut [Value], instruction: &Inst
         &Instruction::CallProcedure(ref callee, ref using, ref giving) => {
             let procedure_value = read_source(globals, locals, callee)?;
             let procedure = read_procedure(&procedure_value)?;
-            call_procedure(globals, locals, &procedure, using, giving)?;
+            call_procedure(context, globals, locals, &procedure, using, giving)?;
             Ok(Status::JumpRelative(1))
         },
 
@@ -146,6 +158,7 @@ fn write_destination(locals: &mut [Value], destination: Destination, value: Valu
 #[cfg(test)]
 mod tests {
     use code::Chunk;
+    use context::NullExecutionLog;
     use rand;
     use rand::Rng;
     use super::*;
@@ -197,8 +210,9 @@ mod tests {
             let source_b = new_source(&mut globals, &mut locals, Value::Int(b));
             let destination = new_destination(&mut locals);
 
+            let context = NullExecutionLog;
             let instruction = make_instruction(source_a, source_b, destination);
-            let status = interpret_one(&globals, &mut locals, &instruction);
+            let status = interpret_one(context, &globals, &mut locals, &instruction);
 
             assert!(status.is_ok(), "status: {:?}", status);
             with_destination(&locals, destination, |result| {
@@ -228,6 +242,7 @@ mod tests {
 
             let closure = Rc::new(Closure{
                 chunk: Rc::new(Chunk{
+                    name: Some(Rc::from("example")),
                     local_count: 1 + 2 + 2 + 1,
                     instructions: vec![
                         Instruction::AddInt(
@@ -263,12 +278,13 @@ mod tests {
             let giving_a = new_destination(&mut locals);
             let giving_b = new_destination(&mut locals);
 
+            let context = NullExecutionLog;
             let instruction = Instruction::CallProcedure(
                 callee,
                 vec![using_a, using_b],
                 vec![giving_a, giving_b],
             );
-            let status = interpret_one(&globals, &mut locals, &instruction);
+            let status = interpret_one(context, &globals, &mut locals, &instruction);
 
             assert!(status.is_ok(), "status: {:?}", status);
             with_destination(&locals, giving_a, |result| {
