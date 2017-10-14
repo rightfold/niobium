@@ -18,6 +18,14 @@ pub fn interpret(globals: &[Value], locals: &mut [Value], instruction: &Instruct
             Ok(())
         },
 
+        &Instruction::MultiplyInt(ref source_a, ref source_b, destination) => {
+            let int_a = read_int(&read_source(globals, locals, source_a)?)?;
+            let int_b = read_int(&read_source(globals, locals, source_b)?)?;
+            let result = Value::Int(int_a.wrapping_mul(int_b));
+            write_destination(locals, destination, result)?;
+            Ok(())
+        },
+
         _ => unimplemented!(),
     }
 }
@@ -63,13 +71,6 @@ mod tests {
     use rand::Rng;
     use super::*;
 
-    macro_rules! assert_pattern {
-        ($a:expr, $b:pat) => {
-            let a = $a;
-            assert!(match a { $b => true, _ => false }, "{:?}", a);
-        }
-    }
-
     pub fn new_source(globals: &mut Vec<Value>, locals: &mut Vec<Value>, value: Value) -> Source {
         match rand::thread_rng().gen_range(0, 3) {
             0 => Source::Constant(value),
@@ -107,23 +108,36 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_add_int() {
+    fn test_arithmetic_int<F>(make_instruction: F, a: i32, b: i32, expected: i32)
+        where F: Fn(Source, Source, Destination) -> Instruction {
         for _ in 0 .. 100 {
             let mut globals = vec![];
             let mut locals = vec![];
 
-            let source_a = new_source(&mut globals, &mut locals, Value::Int(1));
-            let source_b = new_source(&mut globals, &mut locals, Value::Int(2));
+            let source_a = new_source(&mut globals, &mut locals, Value::Int(a));
+            let source_b = new_source(&mut globals, &mut locals, Value::Int(b));
             let destination = new_destination(&mut locals);
 
-            let instruction = Instruction::AddInt(source_a, source_b, destination);
+            let instruction = make_instruction(source_a, source_b, destination);
             let status = interpret(&globals, &mut locals, &instruction);
 
             assert!(status.is_ok(), "status: {:?}", status);
             with_destination(&locals, destination, |result| {
-                assert_pattern!(result, &Value::Int(3));
+                match result {
+                    &Value::Int(actual) => assert_eq!(actual, expected),
+                    _ => assert!(false, "result: {:?}", *result),
+                }
             });
         }
+    }
+
+    #[test]
+    fn test_add_int() {
+        test_arithmetic_int(Instruction::AddInt, 8, 3, 11);
+    }
+
+    #[test]
+    fn test_multiply_int() {
+        test_arithmetic_int(Instruction::MultiplyInt, 8, 3, 24);
     }
 }
