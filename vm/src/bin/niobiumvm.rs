@@ -32,7 +32,7 @@ fn main() {
 fn get_add_procedure() -> Value {
     let closure = Rc::new(Closure{
         chunk: Rc::new(Chunk{
-            name: Some(Rc::from("example.add")),
+            name: Rc::from("example.add"),
             local_count: 3,
             instructions: vec![
                 Instruction::AddInt(Source::Local(Local(0)),
@@ -49,7 +49,7 @@ fn get_add_procedure() -> Value {
 fn get_multiply_procedure() -> Value {
     let closure = Rc::new(Closure{
         chunk: Rc::new(Chunk{
-            name: Some(Rc::from("example.multiply")),
+            name: Rc::from("example.multiply"),
             local_count: 3,
             instructions: vec![
                 Instruction::MultiplyInt(Source::Local(Local(0)),
@@ -66,7 +66,7 @@ fn get_multiply_procedure() -> Value {
 fn get_arithmetic_procedure() -> Value {
     let closure = Rc::new(Closure{
         chunk: Rc::new(Chunk{
-            name: Some(Rc::from("example.arithmetic")),
+            name: Rc::from("example.arithmetic"),
             local_count: 4,
             instructions: vec![
                 Instruction::CallProcedure(Source::Global(Global(0)),

@@ -3,7 +3,7 @@ use std::fmt;
 use std::io;
 
 pub trait ExecutionLog {
-    fn enter(&mut self, Option<&str>);
+    fn enter(&mut self, &str);
     fn leave(&mut self, Option<&Exception>);
 }
 
@@ -11,7 +11,7 @@ pub trait ExecutionLog {
 pub struct NullExecutionLog;
 
 impl ExecutionLog for NullExecutionLog {
-    fn enter(&mut self, _: Option<&str>) { }
+    fn enter(&mut self, _: &str) { }
     fn leave(&mut self, _: Option<&Exception>) { }
 }
 
@@ -40,8 +40,8 @@ impl<W> XMLExecutionLog<W>
 
 impl<W> ExecutionLog for XMLExecutionLog<W>
     where W: io::Write {
-    fn enter(&mut self, name: Option<&str>) {
-        self.append(format_args!("<call procedure=\"{}\">", name.unwrap_or("ANONYMOUS")));
+    fn enter(&mut self, name: &str) {
+        self.append(format_args!("<call procedure=\"{}\">", name));
         self.nesting += 1;
     }
 
@@ -63,20 +63,20 @@ mod tests {
         let mut w = Vec::<u8>::new();
         {
             let mut log = XMLExecutionLog::new(&mut w);
-            log.enter(None);
-            log.enter(None);
-            log.enter(Some("foo"));
+            log.enter("foo");
+            log.enter("bar");
+            log.enter("baz");
             log.leave(None);
-            log.enter(Some("bar"));
+            log.enter("qux");
             log.leave(Some(&Exception::NotAnInt));
             log.leave(None);
             log.leave(None);
         }
-        assert_eq!(w, concat!("<call procedure=\"ANONYMOUS\">\n",
-                              " <call procedure=\"ANONYMOUS\">\n",
-                              "  <call procedure=\"foo\">\n",
+        assert_eq!(w, concat!("<call procedure=\"foo\">\n",
+                              " <call procedure=\"bar\">\n",
+                              "  <call procedure=\"baz\">\n",
                               "  </call>\n",
-                              "  <call procedure=\"bar\">\n",
+                              "  <call procedure=\"qux\">\n",
                               "   <exception><![CDATA[NotAnInt]]></exception>\n",
                               "  </call>\n",
                               " </call>\n",

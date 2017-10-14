@@ -21,7 +21,7 @@ pub enum Exception {
 
 pub fn call_procedure<Context>(context: &mut Context, globals: &[Value], caller_locals: &mut [Value], procedure: &Closure, caller_using: &[Source], caller_giving: &[Destination]) -> Result<(), Exception>
     where Context: ExecutionLog {
-    context.enter(procedure.chunk.name.as_ref().map(AsRef::as_ref));
+    context.enter(procedure.chunk.name.as_ref());
     let result = call_procedure_inner(context, globals, caller_locals, procedure, caller_using, caller_giving);
     context.leave(result.as_ref().err());
     result
@@ -242,7 +242,7 @@ mod tests {
 
             let closure = Rc::new(Closure{
                 chunk: Rc::new(Chunk{
-                    name: Some(Rc::from("example")),
+                    name: Rc::from("example"),
                     local_count: 1 + 2 + 2 + 1,
                     instructions: vec![
                         Instruction::AddInt(
