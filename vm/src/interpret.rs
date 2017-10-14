@@ -19,16 +19,16 @@ pub enum Exception {
     NotAProcedure,
 }
 
-pub fn call_procedure<Context>(context: Context, globals: &[Value], caller_locals: &mut [Value], procedure: &Closure, caller_using: &[Source], caller_giving: &[Destination]) -> Result<(), Exception>
-    where Context: Copy + ExecutionLog {
+pub fn call_procedure<Context>(context: &mut Context, globals: &[Value], caller_locals: &mut [Value], procedure: &Closure, caller_using: &[Source], caller_giving: &[Destination]) -> Result<(), Exception>
+    where Context: ExecutionLog {
     context.enter(procedure.chunk.name.as_ref().map(AsRef::as_ref));
     let result = call_procedure_inner(context, globals, caller_locals, procedure, caller_using, caller_giving);
     context.leave(result.as_ref().err());
     result
 }
 
-fn call_procedure_inner<Context>(context: Context, globals: &[Value], caller_locals: &mut [Value], procedure: &Closure, caller_using: &[Source], caller_giving: &[Destination]) -> Result<(), Exception>
-    where Context: Copy + ExecutionLog {
+fn call_procedure_inner<Context>(context: &mut Context, globals: &[Value], caller_locals: &mut [Value], procedure: &Closure, caller_using: &[Source], caller_giving: &[Destination]) -> Result<(), Exception>
+    where Context: ExecutionLog {
     let free_variables_offset = 0;
     let using_offset = free_variables_offset + procedure.free_variables.len();
     let giving_offset = using_offset + caller_using.len();
@@ -50,8 +50,8 @@ fn call_procedure_inner<Context>(context: Context, globals: &[Value], caller_loc
     Ok(())
 }
 
-pub fn interpret_many<Context>(context: Context, globals: &[Value], locals: &mut [Value], instructions: &[Instruction]) -> Result<Option<Value>, Exception>
-    where Context: Copy + ExecutionLog {
+pub fn interpret_many<Context>(context: &mut Context, globals: &[Value], locals: &mut [Value], instructions: &[Instruction]) -> Result<Option<Value>, Exception>
+    where Context: ExecutionLog {
     let mut program_counter = 0;
     loop {
         let instruction = instructions.get(program_counter).ok_or(Exception::NoSuchInstruction)?;
@@ -64,8 +64,8 @@ pub fn interpret_many<Context>(context: Context, globals: &[Value], locals: &mut
     }
 }
 
-pub fn interpret_one<Context>(context: Context, globals: &[Value], locals: &mut [Value], instruction: &Instruction) -> Result<Status, Exception>
-    where Context: Copy + ExecutionLog {
+pub fn interpret_one<Context>(context: &mut Context, globals: &[Value], locals: &mut [Value], instruction: &Instruction) -> Result<Status, Exception>
+    where Context: ExecutionLog {
     match instruction {
         &Instruction::AddInt(ref source_a, ref source_b, destination) => {
             let int_a = read_int(&read_source(globals, locals, source_a)?)?;
@@ -210,7 +210,7 @@ mod tests {
             let source_b = new_source(&mut globals, &mut locals, Value::Int(b));
             let destination = new_destination(&mut locals);
 
-            let context = NullExecutionLog;
+            let context = &mut NullExecutionLog;
             let instruction = make_instruction(source_a, source_b, destination);
             let status = interpret_one(context, &globals, &mut locals, &instruction);
 
@@ -278,7 +278,7 @@ mod tests {
             let giving_a = new_destination(&mut locals);
             let giving_b = new_destination(&mut locals);
 
-            let context = NullExecutionLog;
+            let context = &mut NullExecutionLog;
             let instruction = Instruction::CallProcedure(
                 callee,
                 vec![using_a, using_b],
