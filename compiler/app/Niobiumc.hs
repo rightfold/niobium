@@ -2,21 +2,27 @@ module Main
   ( main
   ) where
 
-import Data.Foldable (traverse_)
+import Data.Foldable (for_, traverse_)
+import Data.List (intercalate)
+import Data.Semigroup ((<>))
 import Niobiumc.Check (checkDeclaration, runCheck)
-import Niobiumc.Codegen.Object (objectgenDeclaration, runObjectgen, write)
+import Niobiumc.Codegen.Object (objectgenDeclaration, objectName, runObjectgen, write)
 import Niobiumc.Lex (lexeme, whitespace)
 import Niobiumc.Parse (declaration)
+import Niobiumc.Syntax (NamespaceName (..), VariableName (..))
+import System.Directory (createDirectoryIfMissing)
 import System.Environment (getArgs)
+import System.IO (IOMode (..), withFile)
 
 import qualified Data.ByteString.Builder as Builder
+import qualified Data.Text as Text
 import qualified Data.Text.IO as Text.IO
 import qualified Text.Parsec as P
 
 main :: IO ()
 main = do
-  [filename] <- getArgs
-  text <- Text.IO.readFile filename
+  [sourceFile, outputDirectory] <- getArgs
+  text <- Text.IO.readFile sourceFile
 
   lexemes <- case P.parse (whitespace *> P.many lexeme <* P.eof) "" text of
     Left err -> fail (show err)
@@ -31,5 +37,12 @@ main = do
     Right ok -> pure ok
   print declarationsPostCheck
 
-  let objs = snd . runObjectgen $ traverse_ objectgenDeclaration declarationsPostCheck
-  print $ fmap (Builder.toLazyByteString . write) objs
+  let objects = snd . runObjectgen $
+        traverse_ objectgenDeclaration declarationsPostCheck
+  for_ objects $ \object -> do
+    let (NamespaceName ns, VariableName name) = objectName object
+        directory = intercalate "/" $ [outputDirectory] <> (Text.unpack <$> ns)
+        filename = directory <> "/" <> Text.unpack name <> ".nbob"
+    createDirectoryIfMissing True directory
+    withFile filename WriteMode $ \file ->
+      Builder.hPutBuilder file . write $ object

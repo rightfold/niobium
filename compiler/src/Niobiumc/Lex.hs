@@ -80,7 +80,7 @@ identifierOrKeyword :: P.Parser Token
 identifierOrKeyword = do
   escape <- fmap isJust . P.optionMaybe . P.char $ '@'
   let head = P.oneOf $ ['A'..'Z'] ++ ['a'..'z']
-  let tail = P.oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['_', '-']
+  let tail = P.oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['-']
   name <- fmap Text.pack $ (:) <$> head <*> P.many tail
   pure $ case (escape, Text.toUpper name) of
     (False, "ADD") -> AddKeyword

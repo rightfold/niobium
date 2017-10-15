@@ -25,5 +25,5 @@ IMPLEMENTATION
   CALL @multiply USING a, b GIVING product
 END
 
-FUNCTION arithmetic_report() REPORT-HANDLER =
+FUNCTION arithmetic-report() REPORT-HANDLER =
   REPORT-HANDLER arithmetic

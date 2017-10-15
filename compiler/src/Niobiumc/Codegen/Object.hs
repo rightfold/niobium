@@ -10,6 +10,7 @@ module Niobiumc.Codegen.Object
   , Value (..)
   , Global (..)
   , Local (..)
+  , objectName
 
   , write
   , writeMagic
@@ -116,6 +117,10 @@ newtype Global = Global (NamespaceName, VariableName)
 
 newtype Local = Local Word32
   deriving (Eq, Ord)
+
+objectName :: Object -> (NamespaceName, VariableName)
+objectName (FunctionObject (Closure chunk)) = chunkName chunk
+objectName (ProcedureObject (Closure chunk)) = chunkName chunk
 
 
 
