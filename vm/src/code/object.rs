@@ -215,7 +215,7 @@ pub fn read_local<R>(r: &mut R) -> Result<Local, Error>
 pub fn read_global<R>(linking: &Linking, r: &mut R) -> Result<Global, Error>
     where R: io::Read {
     let name = read_name(r)?;
-    linking.get_global(&name).ok_or(Error::UnknownGlobal)
+    linking.get_global(&name).map(|g| g.0).ok_or(Error::UnknownGlobal)
 }
 
 pub fn read_type<R>(r: &mut R) -> Result<Type, Error>
