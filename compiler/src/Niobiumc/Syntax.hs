@@ -30,6 +30,7 @@ data Statement s
   = AddStatement (StatementAnnotation s) (Expression s) (Expression s) VariableName
   | CallStatement (StatementAnnotation s) (Expression s) [Expression s] [VariableName]
   | ExecuteQueryStatement (StatementAnnotation s) Text [Expression s] [VariableName] ExecuteQueryResultAction
+  | ExposeHandlerStatement (StatementAnnotation s) [(Text, Expression s)]
   | ForEachStatement (StatementAnnotation s) VariableName (Expression s) [Statement s]
   | MultiplyStatement (StatementAnnotation s) (Expression s) (Expression s) VariableName
 
@@ -37,6 +38,7 @@ statementAnnotation :: Statement s -> StatementAnnotation s
 statementAnnotation (AddStatement a _ _ _) = a
 statementAnnotation (CallStatement a _ _ _) = a
 statementAnnotation (ExecuteQueryStatement a _ _ _ _) = a
+statementAnnotation (ExposeHandlerStatement a _) = a
 statementAnnotation (ForEachStatement a _ _ _) = a
 statementAnnotation (MultiplyStatement a _ _ _) = a
 

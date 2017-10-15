@@ -26,11 +26,13 @@ data Token
 
   | AddKeyword
   | AnonymousKeyword
+  | AsKeyword
   | ByKeyword
   | CallKeyword
   | DoKeyword
   | EndKeyword
   | ExecuteQueryKeyword
+  | ExposeHandlerKeyword
   | ForEachKeyword
   | FunctionKeyword
   | GivingKeyword
@@ -85,11 +87,13 @@ identifierOrKeyword = do
   pure $ case (escape, Text.toUpper name) of
     (False, "ADD") -> AddKeyword
     (False, "ANONYMOUS") -> AnonymousKeyword
+    (False, "AS") -> AsKeyword
     (False, "BY") -> ByKeyword
     (False, "CALL") -> CallKeyword
     (False, "DO") -> DoKeyword
     (False, "END") -> EndKeyword
     (False, "EXECUTE-QUERY") -> ExecuteQueryKeyword
+    (False, "EXPOSE-HANDLER") -> ExposeHandlerKeyword
     (False, "FOR-EACH") -> ForEachKeyword
     (False, "FUNCTION") -> FunctionKeyword
     (False, "GIVING") -> GivingKeyword

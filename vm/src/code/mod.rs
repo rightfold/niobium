@@ -30,6 +30,7 @@ pub enum Instruction {
 
     ReturnFromFunction(Source),
 
+    ExposeHandler(Vec<(Rc<str>, Source)>),
     MakeReportHandler(Source, Rc<[Type]>, Rc<[Type]>, Destination),
 }
 

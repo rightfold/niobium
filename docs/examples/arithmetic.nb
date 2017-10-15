@@ -27,3 +27,10 @@ END
 
 FUNCTION arithmetic-report() REPORT-HANDLER =
   REPORT-HANDLER arithmetic
+
+PROCEDURE main
+INTERFACE
+IMPLEMENTATION
+  EXPOSE-HANDLER
+    arithmetic AS REPORT-HANDLER arithmetic
+END

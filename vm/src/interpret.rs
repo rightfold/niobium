@@ -98,6 +98,12 @@ pub fn interpret_one<Context>(context: &mut Context, globals: &[Value], locals: 
             Ok(Status::ReturnFromFunction(result))
         },
 
+        &Instruction::ExposeHandler(ref handlers) => {
+            // TODO(rightfold): Expose the handlers.
+            println!("{:?}", handlers);
+            Ok(Status::JumpRelative(1))
+        },
+
         &Instruction::MakeReportHandler(ref callee, ref using, ref giving, destination) => {
             let procedure_value = read_source(globals, locals, callee)?;
             let procedure = read_procedure(&procedure_value)?;

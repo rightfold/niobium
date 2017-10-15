@@ -153,6 +153,15 @@ pub fn read_instruction<R>(linking: &Linking, r: &mut R) -> Result<Instruction, 
         },
 
         0x30 => {
+            let handlers = read_array(r, |r| {
+                let name = read_string(r)?;
+                let handler = read_source(linking, r)?;
+                Ok((Rc::from(name), handler))
+            })?;
+            Ok(Instruction::ExposeHandler(handlers))
+        },
+
+        0x31 => {
             let source = read_source(linking, r)?;
             let using = read_array(r, read_type)?;
             let giving = read_array(r, read_type)?;

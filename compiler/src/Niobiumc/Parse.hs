@@ -105,6 +105,7 @@ statement = P.choice
   [ addStatement
   , callStatement
   , executeQueryStatement
+  , exposeHandlerStatement
   , forEachStatement
   , multiplyStatement
   ]
@@ -153,6 +154,16 @@ executeQueryStatement = do
       [ IgnoreRowsExecuteQueryResultAction <$ token IgnoreRowsKeyword
       , SingleRowExecuteQueryResultAction <$ token SingleRowKeyword
       ]
+
+exposeHandlerStatement :: Parser (Statement PostParse)
+exposeHandlerStatement = do
+  Lexeme position _ <- token ExposeHandlerKeyword
+  handlers <- (`P.sepBy1` token Comma) $ do
+    name <- identifier'
+    _ <- token AsKeyword
+    handler <- expression
+    pure (name, handler)
+  pure $ ExposeHandlerStatement position handlers
 
 forEachStatement :: Parser (Statement PostParse)
 forEachStatement = do
@@ -253,6 +264,9 @@ identifier = (P.<?> "Identifier") . P.try $ do
   case actual of
     Identifier name -> pure (position, name)
     _ -> P.unexpected $ show actual
+
+identifier' :: Parser Text
+identifier' = snd <$> identifier
 
 stringLiteral :: Parser (Position, Text)
 stringLiteral = (P.<?> "StringLiteral") . P.try $ do

@@ -63,6 +63,7 @@ import Data.Monoid (Sum (..))
 import Data.Semigroup ((<>))
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
+import Data.Traversable (for)
 import Data.Word (Word8, Word16, Word32)
 import Niobiumc.Syntax (Declaration (..), Expression (..), NamespaceName (..), PostCheck, Statement (..), Type (..), VariableName (..), expressionAnnotation)
 
@@ -95,6 +96,7 @@ data Instruction
 
   | ReturnFromFunctionInstruction Source
 
+  | ExposeHandlerInstruction [(Text, Source)]
   | forall a. MakeReportHandlerInstruction Source [Type a] [Type a] Destination
 
 data Source
@@ -175,8 +177,14 @@ writeInstruction ReturnFromProcedureInstruction = mempty
 writeInstruction (ReturnFromFunctionInstruction source) = mempty
   <> writeU16 0x20
   <> writeSource source
-writeInstruction (MakeReportHandlerInstruction procedure using giving destination) = mempty
+writeInstruction (ExposeHandlerInstruction handlers) = mempty
   <> writeU16 0x30
+  <> writeArray writeHandler handlers
+  where writeHandler (name, handler) = mempty
+          <> writeString name
+          <> writeSource handler
+writeInstruction (MakeReportHandlerInstruction procedure using giving destination) = mempty
+  <> writeU16 0x31
   <> writeSource procedure
   <> writeArray writeType using
   <> writeArray writeType giving
@@ -329,6 +337,11 @@ codegenStatement (CallStatement _ callee using giving) = do
   giving' <- traverse (fmap LocalDestination . codegenLookupLocal) giving
   codegenInstruction $ CallProcedureInstruction callee' using' giving'
 codegenStatement (ExecuteQueryStatement _ _ _ _ _) = error "NYI: ExecuteQueryStatement"
+codegenStatement (ExposeHandlerStatement _ handlers) = do
+  handlers' <- for handlers $ \(name, handler) -> do
+    handler' <- codegenExpression handler
+    pure (name, handler')
+  codegenInstruction $ ExposeHandlerInstruction handlers'
 codegenStatement (ForEachStatement _ _ _ _) = error "NYI: ForEachStatement"
 codegenStatement (MultiplyStatement _ termA termB result) = do
   termA' <- codegenExpression termA

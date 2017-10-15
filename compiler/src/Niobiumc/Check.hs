@@ -20,6 +20,7 @@ import Control.Monad.RWS (RWST, evalRWST)
 import Data.Foldable (traverse_)
 import Data.Map (Map)
 import Data.Semigroup ((<>))
+import Data.Traversable (for)
 import Niobiumc.Syntax (Declaration (..), Expression (..), NamespaceName (..), Position, PostCheck, PostParse, Statement (..), Type (..), VariableName (..), expressionAnnotation, typeOf)
 
 import qualified Control.Monad.Reader as Reader
@@ -132,6 +133,12 @@ checkStatement (ExecuteQueryStatement a query using giving resultAction) = do
   using' <- traverse checkExpression using
   traverse_ (checkGiving a) giving
   pure $ ExecuteQueryStatement a query using' giving resultAction
+checkStatement (ExposeHandlerStatement a handlers) = do
+  handlers' <- for handlers $ \(name, handler) -> do
+    handler' <- checkExpression handler
+    -- TODO(rightfold): Check that handler is a handler.
+    pure (name, handler')
+  pure $ ExposeHandlerStatement a handlers'
 checkStatement (ForEachStatement a name iterable body) = do
   (iterable', elementType) <- checkIterable iterable
   let bodyEnvironment = ceVariables . at name ?~ elementType
