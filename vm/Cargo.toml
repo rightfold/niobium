@@ -9,6 +9,7 @@ doc = false
 [dependencies]
 lazy_static = "0.2"
 regex = "0.2"
+zip = "0.2"
 
 [dev-dependencies]
 rand = "0.3"

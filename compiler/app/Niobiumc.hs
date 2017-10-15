@@ -41,7 +41,7 @@ main = do
         traverse_ objectgenDeclaration declarationsPostCheck
   for_ objects $ \object -> do
     let (NamespaceName ns, VariableName name) = objectName object
-        directory = intercalate "/" $ [outputDirectory] <> (Text.unpack <$> ns)
+        directory = intercalate "/" $ [outputDirectory, "code"] <> (Text.unpack <$> ns)
         filename = directory <> "/" <> Text.unpack name <> ".nbob"
     createDirectoryIfMissing True directory
     withFile filename WriteMode $ \file ->

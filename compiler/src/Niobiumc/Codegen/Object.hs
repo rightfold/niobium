@@ -154,7 +154,7 @@ writeChunk :: Chunk -> Builder
 writeChunk (Chunk name localCount instructions) = mempty
   <> writeName name
   <> writeU32 localCount
-  <> foldMap writeInstruction instructions
+  <> writeArray writeInstruction instructions
 
 writeInstruction :: Instruction -> Builder
 writeInstruction (AddIntInstruction sourceA sourceB destination) = mempty

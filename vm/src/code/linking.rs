@@ -10,6 +10,10 @@ pub struct Linking {
 }
 
 impl Linking {
+    pub fn new() -> Self {
+        Linking{globals: vec![], names: HashMap::new()}
+    }
+
     pub fn reserve_global(&mut self, name: Rc<str>) {
         self.globals.push(Value::Null);
         let global = Global(self.globals.len() as u32 - 1);
