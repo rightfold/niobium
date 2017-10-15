@@ -39,3 +39,7 @@ pub struct Chunk {
     pub local_count: u32,
     pub instructions: Vec<Instruction>,
 }
+
+pub mod archive;
+pub mod linking;
+pub mod object;

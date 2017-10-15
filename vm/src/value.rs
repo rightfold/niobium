@@ -13,6 +13,7 @@ pub enum Value {
     Int(i32),
 
     Procedure(Rc<Closure>),
+    Function(Rc<Closure>),
 
     ReportHandler(Rc<ReportHandler>),
 }

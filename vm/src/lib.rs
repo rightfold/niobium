@@ -1,5 +1,7 @@
-#[cfg(test)]
-extern crate rand;
+#[cfg(test)] extern crate rand;
+
+#[macro_use] extern crate lazy_static;
+extern crate regex;
 
 pub mod code;
 pub mod context;
