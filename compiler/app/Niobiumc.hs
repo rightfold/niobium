@@ -4,11 +4,10 @@ module Main
 
 import Data.Foldable (traverse_)
 import Niobiumc.Check (checkDeclaration, runCheck)
-import Niobiumc.Codegen.CXX (codegenDeclaration, codegenFooter, codegenHeader, runCodegen)
+import Niobiumc.Codegen.Object (objectgenDeclaration, runObjectgen, write)
 import Niobiumc.Lex (lexeme, whitespace)
 import Niobiumc.Parse (declaration)
 import System.Environment (getArgs)
-import System.IO (IOMode (..), stdout, withFile)
 
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.Text.IO as Text.IO
@@ -32,9 +31,5 @@ main = do
     Right ok -> pure ok
   print declarationsPostCheck
 
-  let cxx = snd . runCodegen $ do { codegenHeader
-                                  ; traverse_ codegenDeclaration declarationsPostCheck
-                                  ; codegenFooter }
-  Builder.hPutBuilder stdout cxx
-  withFile "/home/r/niobium-example/program.cpp" WriteMode $ \file ->
-    Builder.hPutBuilder file cxx
+  let objs = snd . runObjectgen $ traverse_ objectgenDeclaration declarationsPostCheck
+  print $ fmap (Builder.toLazyByteString . write) objs
